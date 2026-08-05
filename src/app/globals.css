@@ -7,9 +7,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-raleway), "Raleway", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-barlow), "Barlow Condensed", ui-sans-serif, sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -47,88 +47,87 @@
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
 
-  /* Thuishaven brand tokens */
-  --color-th-cream: #F5F0EB;
-  --color-th-black: #1A1A1A;
-  --color-th-orange: #E8651A;
-  --color-th-orange-hover: #D15A15;
-  --color-th-gold: #D4A843;
-  --color-th-gold-light: #F5EDD6;
-  --color-th-muted: #6B6460;
-  --color-th-border: #DDD5CC;
+  /* Thuishaven brand tokens — matched to thuishaven.nl */
+  --color-th-cream: #F2F1E6;
+  --color-th-cream-deep: #E8E6D8;
+  --color-th-black: #111111;
+  --color-th-ink: #000000;
+  --color-th-teal: #7EB8C9;
   --color-th-red: #C41E3A;
+  --color-th-muted: #5C5850;
+  --color-th-border: #111111;
   --color-th-green: #2D6A4F;
   --color-th-green-light: #D4EDDA;
 }
 
 :root {
-  /* Thuishaven-branded light theme */
-  --background: #F5F0EB;
-  --foreground: #1A1A1A;
+  /* Industrial fairground light theme */
+  --background: #F2F1E6;
+  --foreground: #111111;
   --card: #FFFFFF;
-  --card-foreground: #1A1A1A;
+  --card-foreground: #111111;
   --popover: #FFFFFF;
-  --popover-foreground: #1A1A1A;
-  --primary: #E8651A;
+  --popover-foreground: #111111;
+  --primary: #111111;
   --primary-foreground: #FFFFFF;
-  --secondary: #F5EDD6;
-  --secondary-foreground: #1A1A1A;
-  --muted: #EDE8E3;
-  --muted-foreground: #6B6460;
-  --accent: #F5EDD6;
-  --accent-foreground: #1A1A1A;
+  --secondary: #E8E6D8;
+  --secondary-foreground: #111111;
+  --muted: #E8E6D8;
+  --muted-foreground: #5C5850;
+  --accent: #7EB8C9;
+  --accent-foreground: #111111;
   --destructive: #C41E3A;
-  --border: #DDD5CC;
-  --input: #DDD5CC;
-  --ring: #E8651A;
-  --chart-1: #E8651A;
-  --chart-2: #D4A843;
-  --chart-3: #2D6A4F;
-  --chart-4: #6B6460;
-  --chart-5: #1A1A1A;
-  --radius: 0.5rem;
-  --sidebar: #1A1A1A;
-  --sidebar-foreground: #F5F0EB;
-  --sidebar-primary: #E8651A;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #2A2A2A;
-  --sidebar-accent-foreground: #F5F0EB;
+  --border: #111111;
+  --input: #111111;
+  --ring: #111111;
+  --chart-1: #111111;
+  --chart-2: #7EB8C9;
+  --chart-3: #C41E3A;
+  --chart-4: #5C5850;
+  --chart-5: #2D6A4F;
+  --radius: 0.125rem;
+  --sidebar: #111111;
+  --sidebar-foreground: #F2F1E6;
+  --sidebar-primary: #7EB8C9;
+  --sidebar-primary-foreground: #111111;
+  --sidebar-accent: #222222;
+  --sidebar-accent-foreground: #F2F1E6;
   --sidebar-border: #333333;
-  --sidebar-ring: #E8651A;
+  --sidebar-ring: #7EB8C9;
 }
 
 .dark {
-  --background: #1A1A1A;
-  --foreground: #F5F0EB;
-  --card: #252525;
-  --card-foreground: #F5F0EB;
-  --popover: #252525;
-  --popover-foreground: #F5F0EB;
-  --primary: #E8651A;
-  --primary-foreground: #FFFFFF;
-  --secondary: #333333;
-  --secondary-foreground: #F5F0EB;
-  --muted: #333333;
-  --muted-foreground: #9B9490;
-  --accent: #333333;
-  --accent-foreground: #F5F0EB;
+  --background: #111111;
+  --foreground: #F2F1E6;
+  --card: #1A1A1A;
+  --card-foreground: #F2F1E6;
+  --popover: #1A1A1A;
+  --popover-foreground: #F2F1E6;
+  --primary: #F2F1E6;
+  --primary-foreground: #111111;
+  --secondary: #222222;
+  --secondary-foreground: #F2F1E6;
+  --muted: #222222;
+  --muted-foreground: #A8A49A;
+  --accent: #7EB8C9;
+  --accent-foreground: #111111;
   --destructive: #E04155;
   --border: #3D3D3D;
   --input: #3D3D3D;
-  --ring: #E8651A;
-  --chart-1: #E8651A;
-  --chart-2: #D4A843;
-  --chart-3: #4CAF7D;
-  --chart-4: #9B9490;
-  --chart-5: #F5F0EB;
-  --sidebar: #111111;
-  --sidebar-foreground: #F5F0EB;
-  --sidebar-primary: #E8651A;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #252525;
-  --sidebar-accent-foreground: #F5F0EB;
+  --ring: #7EB8C9;
+  --chart-1: #F2F1E6;
+  --chart-2: #7EB8C9;
+  --chart-3: #E04155;
+  --chart-4: #A8A49A;
+  --chart-5: #4CAF7D;
+  --sidebar: #0A0A0A;
+  --sidebar-foreground: #F2F1E6;
+  --sidebar-primary: #7EB8C9;
+  --sidebar-primary-foreground: #111111;
+  --sidebar-accent: #1A1A1A;
+  --sidebar-accent-foreground: #F2F1E6;
   --sidebar-border: #333333;
-  --sidebar-ring: #E8651A;
+  --sidebar-ring: #7EB8C9;
 }
 
 @layer base {
@@ -145,9 +144,106 @@
 
 @layer utilities {
   .th-heading {
-    @apply font-bold uppercase tracking-widest;
+    font-family: var(--font-heading);
+    @apply font-bold uppercase tracking-[0.04em];
   }
+
   .th-section-title {
-    @apply text-xs font-semibold uppercase tracking-wider text-muted-foreground;
+    font-family: var(--font-heading);
+    @apply text-sm font-semibold uppercase tracking-[0.12em] text-foreground;
+  }
+
+  /* Parchment + radial sunburst like thuishaven.nl */
+  .th-sunburst {
+    background-color: var(--color-th-cream);
+    background-image:
+      repeating-conic-gradient(
+        from 0deg at 50% 0%,
+        transparent 0deg 3deg,
+        rgb(0 0 0 / 0.035) 3deg 6deg
+      );
+    background-size: 100% 140%;
+    background-position: center top;
+    background-repeat: no-repeat;
+  }
+
+  .th-panel {
+    @apply border border-th-ink bg-white;
+  }
+
+  .th-label {
+    font-family: var(--font-heading);
+    @apply text-xs font-semibold uppercase tracking-[0.14em] text-foreground;
+  }
+
+  /* Banner / chevron CTA inspired by TICKETS buttons */
+  .th-chevron-btn {
+    font-family: var(--font-heading);
+    clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%);
+    @apply inline-flex h-12 w-full items-center justify-center bg-th-ink px-6 pr-8 text-base font-bold uppercase tracking-[0.18em] text-white transition-transform duration-200;
+  }
+
+  .th-chevron-btn:hover:not(:disabled) {
+    transform: translateX(3px);
+    background-color: #000;
+  }
+
+  .th-chevron-btn:disabled {
+    @apply opacity-50;
+  }
+
+  .th-fade-up {
+    animation: th-fade-up 0.55s ease-out both;
+  }
+
+  .th-fade-in {
+    animation: th-fade-in 0.7s ease-out both;
+  }
+
+  .th-brand-mark {
+    animation: th-brand-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+@keyframes th-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes th-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes th-brand-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .th-fade-up,
+  .th-fade-in,
+  .th-brand-mark {
+    animation: none;
+  }
+
+  .th-chevron-btn:hover:not(:disabled) {
+    transform: none;
   }
 }

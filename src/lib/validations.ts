@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { checkIban, validateIban } from "@/lib/iban";
 
 function validateBSN(bsn: string): boolean {
   if (!/^\d{9}$/.test(bsn)) return false;
@@ -14,19 +15,6 @@ function validateBSN(bsn: string): boolean {
     2 * digits[7] +
     -1 * digits[8];
   return sum % 11 === 0 && sum !== 0;
-}
-
-function validateIBAN(iban: string): boolean {
-  const cleaned = iban.replace(/\s/g, "").toUpperCase();
-  if (!/^[A-Z]{2}\d{2}[A-Z0-9]{4,}$/.test(cleaned)) return false;
-  const rearranged = cleaned.slice(4) + cleaned.slice(0, 4);
-  const numericString = rearranged.replace(/[A-Z]/g, (ch) =>
-    (ch.charCodeAt(0) - 55).toString(),
-  );
-  let remainder = numericString
-    .match(/.{1,7}/g)!
-    .reduce((acc, chunk) => (BigInt(acc + chunk) % 97n).toString(), "");
-  return remainder === "1";
 }
 
 export const formSchema = z.object({
@@ -48,10 +36,13 @@ export const formSchema = z.object({
   iban: z
     .string()
     .min(1, "IBAN is verplicht")
-    .refine(
-      (v) => validateIBAN(v),
-      "Ongeldig IBAN",
-    ),
+    .superRefine((v, ctx) => {
+      if (validateIban(v)) return;
+      ctx.addIssue({
+        code: "custom",
+        message: checkIban(v).message || "Ongeldig IBAN",
+      });
+    }),
   eventDate: z.string().min(1, "Datum project is verplicht"),
   department: z.string().optional(),
   startTime: z.string().regex(/^\d{2}:\d{2}$/, "Gebruik HH:MM formaat"),

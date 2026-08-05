@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useForm, type Resolver } from "react-hook-form";
+import { useForm, Controller, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { formSchema, type FormData } from "@/lib/validations";
@@ -14,8 +14,11 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
 import { SignaturePad } from "@/components/form/signature-pad";
+import { AddressAutocomplete } from "@/components/form/address-autocomplete";
+import { FormDatePicker } from "@/components/form/form-date-picker";
+import { IbanField } from "@/components/form/iban-field";
+import type { ParsedAddress } from "@/lib/address";
 
 interface PayInfo {
   category: "18/19" | "20+" | null;
@@ -37,6 +40,7 @@ export function EmployeeForm() {
 
   const {
     register,
+    control,
     handleSubmit,
     setValue,
     watch,
@@ -176,194 +180,223 @@ export function EmployeeForm() {
     new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(amount);
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-5" noValidate>
       {/* Honeypot */}
       <div className="absolute -left-[9999px]" aria-hidden="true">
         <input type="text" tabIndex={-1} autoComplete="off" {...register("honeypot")} />
       </div>
 
       {/* Persoonlijke gegevens */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Persoonlijke gegevens</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <FormField label="Voornaam" error={errors.firstName?.message}>
-              <Input placeholder="Jan" {...register("firstName")} />
-            </FormField>
-            <FormField label="Achternaam" error={errors.lastName?.message}>
-              <Input placeholder="De Vries" {...register("lastName")} />
-            </FormField>
-          </div>
-          <FormField label="Geboortedatum" error={errors.dateOfBirth?.message}>
-            <Input type="date" {...register("dateOfBirth")} />
+      <FormSection title="Persoonlijke gegevens">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <FormField label="Voornaam" error={errors.firstName?.message}>
+            <Input placeholder="Jan" {...register("firstName")} />
           </FormField>
-          <FormField label="BSN / Sofinummer" error={errors.bsn?.message}>
-            <div className="relative">
-              <Input
-                placeholder="123456789"
-                maxLength={9}
-                inputMode="numeric"
-                {...register("bsn")}
-                onBlur={(e) => {
-                  register("bsn").onBlur(e);
-                  handleBsnBlur(e);
-                }}
+          <FormField label="Achternaam" error={errors.lastName?.message}>
+            <Input placeholder="De Vries" {...register("lastName")} />
+          </FormField>
+        </div>
+        <FormField label="Geboortedatum" error={errors.dateOfBirth?.message}>
+          <Controller
+            name="dateOfBirth"
+            control={control}
+            render={({ field }) => (
+              <FormDatePicker
+                id="dateOfBirth"
+                variant="birth"
+                placeholder="Kies geboortedatum"
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                aria-invalid={!!errors.dateOfBirth}
               />
-              {isLookingUp && (
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                  Zoeken…
-                </span>
-              )}
-            </div>
-          </FormField>
-        </CardContent>
-      </Card>
+            )}
+          />
+        </FormField>
+        <FormField label="BSN / Sofinummer" error={errors.bsn?.message}>
+          <div className="relative">
+            <Input
+              placeholder="123456789"
+              maxLength={9}
+              inputMode="numeric"
+              {...register("bsn")}
+              onBlur={(e) => {
+                register("bsn").onBlur(e);
+                handleBsnBlur(e);
+              }}
+            />
+            {isLookingUp && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                Zoeken…
+              </span>
+            )}
+          </div>
+        </FormField>
+      </FormSection>
 
       {/* Adres */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Adres</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_auto]">
-            <FormField label="Straat" error={errors.street?.message}>
-              <Input placeholder="Keizersgracht" {...register("street")} />
-            </FormField>
-            <FormField label="Huisnummer" error={errors.houseNumber?.message}>
-              <Input placeholder="42" className="sm:w-24" {...register("houseNumber")} />
-            </FormField>
-          </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <FormField label="Postcode" error={errors.postalCode?.message}>
-              <Input placeholder="1234 AB" maxLength={7} {...register("postalCode")} />
-            </FormField>
-            <FormField label="Woonplaats" error={errors.city?.message}>
-              <Input placeholder="Amsterdam" {...register("city")} />
-            </FormField>
-          </div>
-        </CardContent>
-      </Card>
+      <FormSection title="Adres">
+        <AddressAutocomplete
+          onAddressSelect={(address: ParsedAddress) => {
+            if (address.street) {
+              setValue("street", address.street, { shouldValidate: true, shouldDirty: true });
+            }
+            if (address.houseNumber) {
+              setValue("houseNumber", address.houseNumber, {
+                shouldValidate: true,
+                shouldDirty: true,
+              });
+            }
+            if (address.postalCode) {
+              setValue("postalCode", address.postalCode, {
+                shouldValidate: true,
+                shouldDirty: true,
+              });
+            }
+            if (address.city) {
+              setValue("city", address.city, { shouldValidate: true, shouldDirty: true });
+            }
+          }}
+        />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_auto]">
+          <FormField label="Straat" error={errors.street?.message}>
+            <Input placeholder="Keizersgracht" {...register("street")} />
+          </FormField>
+          <FormField label="Huisnummer" error={errors.houseNumber?.message}>
+            <Input placeholder="42" className="sm:w-24" {...register("houseNumber")} />
+          </FormField>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <FormField label="Postcode" error={errors.postalCode?.message}>
+            <Input placeholder="1234 AB" maxLength={7} {...register("postalCode")} />
+          </FormField>
+          <FormField label="Woonplaats" error={errors.city?.message}>
+            <Input placeholder="Amsterdam" {...register("city")} />
+          </FormField>
+        </div>
+      </FormSection>
 
       {/* Contact */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Contactgegevens</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <FormField label="Telefoonnummer" error={errors.phone?.message}>
-            <Input type="tel" placeholder="06 12345678" {...register("phone")} />
-          </FormField>
-          <FormField label="E-mailadres" error={errors.email?.message}>
-            <Input type="email" placeholder="jan@voorbeeld.nl" {...register("email")} />
-          </FormField>
-        </CardContent>
-      </Card>
+      <FormSection title="Contactgegevens">
+        <FormField label="Telefoonnummer" error={errors.phone?.message}>
+          <Input type="tel" placeholder="06 12345678" {...register("phone")} />
+        </FormField>
+        <FormField label="E-mailadres" error={errors.email?.message}>
+          <Input type="email" placeholder="jan@voorbeeld.nl" {...register("email")} />
+        </FormField>
+      </FormSection>
 
       {/* Bank */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Bankgegevens</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <FormField label="IBAN (Bankrekeningnummer)" error={errors.iban?.message}>
-            <Input placeholder="NL91 ABNA 0417 1643 00" {...register("iban")} />
-          </FormField>
-        </CardContent>
-      </Card>
+      <FormSection title="Bankgegevens">
+        <FormField label="IBAN (Bankrekeningnummer)" error={errors.iban?.message}>
+          <Controller
+            name="iban"
+            control={control}
+            render={({ field }) => (
+              <IbanField
+                id="iban"
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                aria-invalid={!!errors.iban}
+              />
+            )}
+          />
+        </FormField>
+      </FormSection>
 
       {/* Event / Dienst */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Dienst / Project</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <FormField label="Datum project" error={errors.eventDate?.message}>
-            <Input type="date" {...register("eventDate")} />
-          </FormField>
-          <FormField label="Afdeling (optioneel)" error={errors.department?.message}>
-            <Input placeholder="Bar, garderobe, etc." {...register("department")} />
-          </FormField>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <FormField label="Starttijd" error={errors.startTime?.message}>
-              <Input type="time" {...register("startTime")} />
-            </FormField>
-            <FormField label="Eindtijd" error={errors.endTime?.message}>
-              <Input type="time" {...register("endTime")} />
-            </FormField>
-            <FormField label="Pauze (minuten)" error={errors.breakMinutes?.message}>
-              <Input
-                type="number"
-                min={0}
-                placeholder="30"
-                {...register("breakMinutes", { valueAsNumber: true })}
+      <FormSection title="Dienst / Project">
+        <FormField label="Datum project" error={errors.eventDate?.message}>
+          <Controller
+            name="eventDate"
+            control={control}
+            render={({ field }) => (
+              <FormDatePicker
+                id="eventDate"
+                variant="event"
+                placeholder="Kies projectdatum"
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                aria-invalid={!!errors.eventDate}
               />
-            </FormField>
-          </div>
-        </CardContent>
-      </Card>
+            )}
+          />
+        </FormField>
+        <FormField label="Afdeling (optioneel)" error={errors.department?.message}>
+          <Input placeholder="Bar, garderobe, etc." {...register("department")} />
+        </FormField>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <FormField label="Starttijd" error={errors.startTime?.message}>
+            <Input type="time" {...register("startTime")} />
+          </FormField>
+          <FormField label="Eindtijd" error={errors.endTime?.message}>
+            <Input type="time" {...register("endTime")} />
+          </FormField>
+          <FormField label="Pauze (minuten)" error={errors.breakMinutes?.message}>
+            <Input
+              type="number"
+              min={0}
+              placeholder="30"
+              {...register("breakMinutes", { valueAsNumber: true })}
+            />
+          </FormField>
+        </div>
+      </FormSection>
 
       {/* Verloning */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Verloning</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2 rounded-lg bg-muted p-4">
-            <div className="flex items-center gap-3">
-              <span
-                className={`flex size-5 items-center justify-center rounded border text-xs ${
-                  payInfo.category === "18/19"
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-input"
-                }`}
-              >
-                {payInfo.category === "18/19" && "✓"}
-              </span>
-              <span className="text-sm">18/19 jaar = €13,25 per uur</span>
+      <FormSection title="Verloning">
+        <div className="space-y-2 border border-th-ink/15 bg-th-cream p-4">
+          <div className="flex items-center gap-3">
+            <span
+              className={`flex size-5 items-center justify-center border text-xs ${
+                payInfo.category === "18/19"
+                  ? "border-th-ink bg-th-ink text-white"
+                  : "border-th-ink/40 bg-white"
+              }`}
+            >
+              {payInfo.category === "18/19" && "✓"}
+            </span>
+            <span className="text-sm">18/19 jaar = €13,25 per uur</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span
+              className={`flex size-5 items-center justify-center border text-xs ${
+                payInfo.category === "20+"
+                  ? "border-th-ink bg-th-ink text-white"
+                  : "border-th-ink/40 bg-white"
+              }`}
+            >
+              {payInfo.category === "20+" && "✓"}
+            </span>
+            <span className="text-sm">≥ 20 jaar = €14,75 per uur</span>
+          </div>
+        </div>
+
+        {payInfo.category && (
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <div className="border border-th-ink bg-white p-3">
+              <p className="th-label text-muted-foreground">Uurloon</p>
+              <p className="th-heading mt-1 text-lg">{formatCurrency(payInfo.hourlyRate)}</p>
             </div>
-            <div className="flex items-center gap-3">
-              <span
-                className={`flex size-5 items-center justify-center rounded border text-xs ${
-                  payInfo.category === "20+"
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-input"
-                }`}
-              >
-                {payInfo.category === "20+" && "✓"}
-              </span>
-              <span className="text-sm">≥ 20 jaar = €14,75 per uur</span>
+            <div className="border border-th-ink bg-white p-3">
+              <p className="th-label text-muted-foreground">Uren</p>
+              <p className="th-heading mt-1 text-lg">{payInfo.totalHours.toFixed(2)}</p>
+            </div>
+            <div className="border border-th-ink bg-accent/30 p-3">
+              <p className="th-label text-muted-foreground">Totaal</p>
+              <p className="th-heading mt-1 text-lg">{formatCurrency(payInfo.totalPay)}</p>
             </div>
           </div>
-
-          {payInfo.category && (
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div className="rounded-lg border p-3">
-                <p className="text-xs text-muted-foreground">Uurloon</p>
-                <p className="text-lg font-semibold">{formatCurrency(payInfo.hourlyRate)}</p>
-              </div>
-              <div className="rounded-lg border p-3">
-                <p className="text-xs text-muted-foreground">Uren</p>
-                <p className="text-lg font-semibold">{payInfo.totalHours.toFixed(2)}</p>
-              </div>
-              <div className="rounded-lg border p-3">
-                <p className="text-xs text-muted-foreground">Totaal</p>
-                <p className="text-lg font-semibold">{formatCurrency(payInfo.totalPay)}</p>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        )}
+      </FormSection>
 
       {/* Disclaimer */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Voorwaarden</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4 text-sm text-muted-foreground">
+      <FormSection title="Voorwaarden">
+        <div className="space-y-4 text-sm text-muted-foreground">
           <div>
-            <p className="font-medium text-foreground">Aansprakelijkheid</p>
+            <p className="th-label mb-1 text-foreground">Aansprakelijkheid</p>
             <p>
               Thuishaven is niet aansprakelijk voor schade aan of verlies van persoonlijke
               eigendommen tijdens het werk. Medewerkers zijn zelf verantwoordelijk voor hun
@@ -371,56 +404,63 @@ export function EmployeeForm() {
             </p>
           </div>
           <div>
-            <p className="font-medium text-foreground">Belastingdienst</p>
+            <p className="th-label mb-1 text-foreground">Belastingdienst</p>
             <p>
               Je wordt uitbetaald als freelancer. Je bent zelf verantwoordelijk voor het
               opgeven van deze inkomsten bij de Belastingdienst.
             </p>
           </div>
-          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3">
-            <p className="font-semibold text-destructive">LET OP!!</p>
-            <p className="text-destructive/80">
+          <div className="border border-destructive bg-destructive/5 p-3">
+            <p className="th-heading text-sm tracking-[0.12em] text-destructive">Let op!!</p>
+            <p className="mt-1 text-destructive/90">
               Je ontvangt geen loonstrook. Bewaar dit formulier als bewijs van je gewerkte
               uren en betaling.
             </p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </FormSection>
 
       {/* Handtekening */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Handtekening</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <p className="text-sm text-muted-foreground">
-            Door hieronder te tekenen ga je akkoord met bovenstaande voorwaarden.
-          </p>
-          <SignaturePad
-            onChange={(data) => setValue("signatureData", data, { shouldValidate: true })}
-          />
-          {errors.signatureData && (
-            <p className="text-sm text-destructive">{errors.signatureData.message}</p>
-          )}
-        </CardContent>
-      </Card>
+      <FormSection title="Handtekening">
+        <p className="text-sm text-muted-foreground">
+          Door hieronder te tekenen ga je akkoord met bovenstaande voorwaarden.
+        </p>
+        <SignaturePad
+          onChange={(data) => setValue("signatureData", data, { shouldValidate: true })}
+        />
+        {errors.signatureData && (
+          <p className="text-sm text-destructive">{errors.signatureData.message}</p>
+        )}
+      </FormSection>
 
       {/* Submit */}
       {errors.root && (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-center text-sm text-destructive">
+        <div className="border border-destructive bg-destructive/5 p-4 text-center text-sm text-destructive">
           {errors.root.message}
         </div>
       )}
 
-      <Button
-        type="submit"
-        size="lg"
-        className="w-full text-base"
-        disabled={isSubmitting}
-      >
+      <button type="submit" className="th-chevron-btn" disabled={isSubmitting}>
         {isSubmitting ? "Verzenden…" : "Formulier verzenden"}
-      </Button>
+      </button>
     </form>
+  );
+}
+
+function FormSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Card className="th-panel gap-0 rounded-none py-0 ring-0">
+      <CardHeader className="border-b border-th-ink/10 px-4 py-3 sm:px-5">
+        <CardTitle className="th-section-title">{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4 px-4 py-4 sm:px-5 sm:py-5">{children}</CardContent>
+    </Card>
   );
 }
 
@@ -435,7 +475,7 @@ function FormField({
 }) {
   return (
     <div className="space-y-1.5">
-      <Label>{label}</Label>
+      <Label className="th-label">{label}</Label>
       {children}
       {error && <p className="text-sm text-destructive">{error}</p>}
     </div>

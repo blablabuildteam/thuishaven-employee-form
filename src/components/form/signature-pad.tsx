@@ -25,7 +25,7 @@ export function SignaturePad({ onChange }: SignaturePadProps) {
 
   return (
     <div className="space-y-2">
-      <div className="rounded-lg border border-input bg-white">
+      <div className="border border-th-ink bg-white">
         <SignatureCanvas
           ref={sigRef}
           penColor="black"
@@ -36,7 +36,13 @@ export function SignaturePad({ onChange }: SignaturePadProps) {
           onEnd={handleEnd}
         />
       </div>
-      <Button type="button" variant="outline" size="sm" onClick={handleClear}>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="rounded-none border-th-ink uppercase tracking-wider"
+        onClick={handleClear}
+      >
         Handtekening wissen
       </Button>
     </div>
