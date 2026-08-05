@@ -19,6 +19,10 @@ import { AddressAutocomplete } from "@/components/form/address-autocomplete";
 import { FormDatePicker } from "@/components/form/form-date-picker";
 import { IbanField } from "@/components/form/iban-field";
 import type { ParsedAddress } from "@/lib/address";
+import { DISCLAIMER } from "@/lib/disclaimer";
+import { validateIban } from "@/lib/iban";
+import { cn } from "@/lib/utils";
+import { CheckCircle2 } from "lucide-react";
 
 interface PayInfo {
   category: "18/19" | "20+" | null;
@@ -45,7 +49,7 @@ export function EmployeeForm() {
     setValue,
     watch,
     setError,
-    formState: { errors },
+    formState: { errors, dirtyFields },
   } = useForm<FormData>({
     resolver: zodResolver(formSchema) as Resolver<FormData>,
     defaultValues: {
@@ -70,11 +74,55 @@ export function EmployeeForm() {
     },
   });
 
-  const dateOfBirth = watch("dateOfBirth");
-  const eventDate = watch("eventDate");
-  const startTime = watch("startTime");
-  const endTime = watch("endTime");
-  const breakMinutes = watch("breakMinutes");
+  const values = watch();
+  const dateOfBirth = values.dateOfBirth;
+  const eventDate = values.eventDate;
+  const startTime = values.startTime;
+  const endTime = values.endTime;
+  const breakMinutes = values.breakMinutes;
+
+  const filled = {
+    firstName: hasText(values.firstName),
+    lastName: hasText(values.lastName),
+    dateOfBirth: hasText(values.dateOfBirth),
+    bsn: /^\d{9}$/.test(values.bsn ?? ""),
+    street: hasText(values.street),
+    houseNumber: hasText(values.houseNumber),
+    postalCode: /^\d{4}\s?[A-Za-z]{2}$/.test(values.postalCode ?? ""),
+    city: hasText(values.city),
+    phone: hasText(values.phone),
+    email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email ?? ""),
+    iban: validateIban(values.iban ?? ""),
+    eventDate: hasText(values.eventDate),
+    department: hasText(values.department),
+    startTime: /^\d{2}:\d{2}$/.test(values.startTime ?? ""),
+    endTime: /^\d{2}:\d{2}$/.test(values.endTime ?? ""),
+    breakMinutes:
+      Boolean(dirtyFields.breakMinutes) ||
+      (/^\d{2}:\d{2}$/.test(values.startTime ?? "") &&
+        /^\d{2}:\d{2}$/.test(values.endTime ?? "")),
+    signatureData: hasText(values.signatureData),
+  };
+
+  const sectionComplete = {
+    personal:
+      filled.firstName &&
+      filled.lastName &&
+      filled.dateOfBirth &&
+      filled.bsn,
+    address:
+      filled.street && filled.houseNumber && filled.postalCode && filled.city,
+    contact: filled.phone && filled.email,
+    bank: filled.iban,
+    service:
+      filled.eventDate &&
+      filled.department &&
+      filled.startTime &&
+      filled.endTime &&
+      filled.breakMinutes,
+    pay: Boolean(payInfo.category && payInfo.totalHours > 0),
+    signature: filled.signatureData,
+  };
 
   useEffect(() => {
     if (!dateOfBirth || !eventDate) {
@@ -201,16 +249,20 @@ export function EmployeeForm() {
       </div>
 
       {/* Persoonlijke gegevens */}
-      <FormSection title="Persoonlijke gegevens">
+      <FormSection title="Persoonlijke gegevens" complete={sectionComplete.personal}>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <FormField label="Voornaam" error={errors.firstName?.message}>
+          <FormField label="Voornaam" error={errors.firstName?.message} filled={filled.firstName}>
             <Input placeholder="Jan" {...register("firstName")} />
           </FormField>
-          <FormField label="Achternaam" error={errors.lastName?.message}>
+          <FormField label="Achternaam" error={errors.lastName?.message} filled={filled.lastName}>
             <Input placeholder="De Vries" {...register("lastName")} />
           </FormField>
         </div>
-        <FormField label="Geboortedatum" error={errors.dateOfBirth?.message}>
+        <FormField
+          label="Geboortedatum"
+          error={errors.dateOfBirth?.message}
+          filled={filled.dateOfBirth}
+        >
           <Controller
             name="dateOfBirth"
             control={control}
@@ -223,11 +275,12 @@ export function EmployeeForm() {
                 onChange={field.onChange}
                 onBlur={field.onBlur}
                 aria-invalid={!!errors.dateOfBirth}
+                complete={filled.dateOfBirth}
               />
             )}
           />
         </FormField>
-        <FormField label="BSN / Sofinummer" error={errors.bsn?.message}>
+        <FormField label="BSN / Sofinummer" error={errors.bsn?.message} filled={filled.bsn}>
           <div className="relative">
             <Input
               placeholder="123456789"
@@ -249,7 +302,7 @@ export function EmployeeForm() {
       </FormSection>
 
       {/* Adres */}
-      <FormSection title="Adres">
+      <FormSection title="Adres" complete={sectionComplete.address}>
         <AddressAutocomplete
           onAddressSelect={(address: ParsedAddress) => {
             if (address.street) {
@@ -273,36 +326,44 @@ export function EmployeeForm() {
           }}
         />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_auto]">
-          <FormField label="Straat" error={errors.street?.message}>
+          <FormField label="Straat" error={errors.street?.message} filled={filled.street}>
             <Input placeholder="Keizersgracht" {...register("street")} />
           </FormField>
-          <FormField label="Huisnummer" error={errors.houseNumber?.message}>
+          <FormField
+            label="Huisnummer"
+            error={errors.houseNumber?.message}
+            filled={filled.houseNumber}
+          >
             <Input placeholder="42" className="sm:w-24" {...register("houseNumber")} />
           </FormField>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <FormField label="Postcode" error={errors.postalCode?.message}>
+          <FormField label="Postcode" error={errors.postalCode?.message} filled={filled.postalCode}>
             <Input placeholder="1234 AB" maxLength={7} {...register("postalCode")} />
           </FormField>
-          <FormField label="Woonplaats" error={errors.city?.message}>
+          <FormField label="Woonplaats" error={errors.city?.message} filled={filled.city}>
             <Input placeholder="Amsterdam" {...register("city")} />
           </FormField>
         </div>
       </FormSection>
 
       {/* Contact */}
-      <FormSection title="Contactgegevens">
-        <FormField label="Telefoonnummer" error={errors.phone?.message}>
+      <FormSection title="Contactgegevens" complete={sectionComplete.contact}>
+        <FormField label="Telefoonnummer" error={errors.phone?.message} filled={filled.phone}>
           <Input type="tel" placeholder="06 12345678" {...register("phone")} />
         </FormField>
-        <FormField label="E-mailadres" error={errors.email?.message}>
+        <FormField label="E-mailadres" error={errors.email?.message} filled={filled.email}>
           <Input type="email" placeholder="jan@voorbeeld.nl" {...register("email")} />
         </FormField>
       </FormSection>
 
       {/* Bank */}
-      <FormSection title="Bankgegevens">
-        <FormField label="IBAN (Bankrekeningnummer)" error={errors.iban?.message}>
+      <FormSection title="Bankgegevens" complete={sectionComplete.bank}>
+        <FormField
+          label="IBAN (Bankrekeningnummer)"
+          error={errors.iban?.message}
+          filled={filled.iban}
+        >
           <Controller
             name="iban"
             control={control}
@@ -320,8 +381,12 @@ export function EmployeeForm() {
       </FormSection>
 
       {/* Event / Dienst */}
-      <FormSection title="Dienst / Project">
-        <FormField label="Datum project" error={errors.eventDate?.message}>
+      <FormSection title="Dienst / Project" complete={sectionComplete.service}>
+        <FormField
+          label="Datum dienst"
+          error={errors.eventDate?.message}
+          filled={filled.eventDate}
+        >
           <Controller
             name="eventDate"
             control={control}
@@ -329,26 +394,31 @@ export function EmployeeForm() {
               <FormDatePicker
                 id="eventDate"
                 variant="event"
-                placeholder="Kies projectdatum"
+                placeholder="Kies dienstdatum"
                 value={field.value}
                 onChange={field.onChange}
                 onBlur={field.onBlur}
                 aria-invalid={!!errors.eventDate}
+                complete={filled.eventDate}
               />
             )}
           />
         </FormField>
-        <FormField label="Afdeling (optioneel)" error={errors.department?.message}>
+        <FormField label="Afdeling" error={errors.department?.message} filled={filled.department}>
           <Input placeholder="Bar, garderobe, etc." {...register("department")} />
         </FormField>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <FormField label="Starttijd" error={errors.startTime?.message}>
+          <FormField label="Starttijd" error={errors.startTime?.message} filled={filled.startTime}>
             <Input type="time" {...register("startTime")} />
           </FormField>
-          <FormField label="Eindtijd" error={errors.endTime?.message}>
+          <FormField label="Eindtijd" error={errors.endTime?.message} filled={filled.endTime}>
             <Input type="time" {...register("endTime")} />
           </FormField>
-          <FormField label="Pauze (minuten)" error={errors.breakMinutes?.message}>
+          <FormField
+            label="Pauze (minuten)"
+            error={errors.breakMinutes?.message}
+            filled={filled.breakMinutes}
+          >
             <Input
               type="number"
               min={0}
@@ -359,46 +429,76 @@ export function EmployeeForm() {
         </div>
       </FormSection>
 
-      {/* Verloning */}
-      <FormSection title="Verloning">
-        <div className="space-y-2 border border-th-ink/15 bg-th-cream p-4">
-          <div className="flex items-center gap-3">
-            <span
-              className={`flex size-5 items-center justify-center border text-xs ${
-                payInfo.category === "18/19"
-                  ? "border-th-ink bg-th-ink text-white"
-                  : "border-th-ink/40 bg-white"
-              }`}
-            >
-              {payInfo.category === "18/19" && "✓"}
-            </span>
-            <span className="text-sm">18/19 jaar = €13,25 per uur</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <span
-              className={`flex size-5 items-center justify-center border text-xs ${
-                payInfo.category === "20+"
-                  ? "border-th-ink bg-th-ink text-white"
-                  : "border-th-ink/40 bg-white"
-              }`}
-            >
-              {payInfo.category === "20+" && "✓"}
-            </span>
-            <span className="text-sm">≥ 20 jaar = €14,75 per uur</span>
-          </div>
-        </div>
+      {/* Verloning — rate is auto-calculated from DOB + event date */}
+      <FormSection title="Verloning" complete={sectionComplete.pay}>
+        <fieldset
+          className={cn(
+            "space-y-3 border p-4",
+            sectionComplete.pay
+              ? "border-th-green/40 bg-th-green-light/40"
+              : "border-th-ink/15 bg-th-cream",
+          )}
+        >
+          <legend className="sr-only">Uurloon categorie</legend>
+          <p className="text-xs text-muted-foreground">
+            Wordt automatisch bepaald op basis van geboortedatum en dienstdatum.
+            {!payInfo.category &&
+              " Vul eerst geboortedatum en dienstdatum in."}
+          </p>
+          <label className="flex cursor-default items-center gap-3 text-sm opacity-90">
+            <input
+              type="radio"
+              name="payCategory"
+              checked={payInfo.category === "18/19"}
+              onChange={() => {}}
+              disabled
+              className="size-4 accent-th-ink disabled:opacity-100"
+              aria-label="18/19 jaar = €13,25 per uur"
+            />
+            <span>18/19 jaar = €13,25 per uur</span>
+          </label>
+          <label className="flex cursor-default items-center gap-3 text-sm opacity-90">
+            <input
+              type="radio"
+              name="payCategory"
+              checked={payInfo.category === "20+"}
+              onChange={() => {}}
+              disabled
+              className="size-4 accent-th-ink disabled:opacity-100"
+              aria-label="20 jaar of ouder = €14,75 per uur"
+            />
+            <span>≥ 20 jaar = €14,75 per uur</span>
+          </label>
+        </fieldset>
 
         {payInfo.category && (
           <div className="grid grid-cols-3 gap-3 text-center">
-            <div className="border border-th-ink bg-white p-3">
+            <div
+              className={cn(
+                "border bg-white p-3",
+                sectionComplete.pay ? "border-th-green" : "border-th-ink",
+              )}
+            >
               <p className="th-label text-muted-foreground">Uurloon</p>
               <p className="th-heading mt-1 text-lg">{formatCurrency(payInfo.hourlyRate)}</p>
             </div>
-            <div className="border border-th-ink bg-white p-3">
+            <div
+              className={cn(
+                "border bg-white p-3",
+                sectionComplete.pay ? "border-th-green" : "border-th-ink",
+              )}
+            >
               <p className="th-label text-muted-foreground">Uren</p>
               <p className="th-heading mt-1 text-lg">{payInfo.totalHours.toFixed(2)}</p>
             </div>
-            <div className="border border-th-ink bg-accent/30 p-3">
+            <div
+              className={cn(
+                "border p-3",
+                sectionComplete.pay
+                  ? "border-th-green bg-th-green-light/50"
+                  : "border-th-ink bg-accent/30",
+              )}
+            >
               <p className="th-label text-muted-foreground">Totaal</p>
               <p className="th-heading mt-1 text-lg">{formatCurrency(payInfo.totalPay)}</p>
             </div>
@@ -406,40 +506,36 @@ export function EmployeeForm() {
         )}
       </FormSection>
 
-      {/* Disclaimer */}
+      {/* Disclaimer — copy matches the paper IB47 form */}
       <FormSection title="Voorwaarden">
-        <div className="space-y-4 text-sm text-muted-foreground">
+        <div className="space-y-4 text-sm leading-relaxed text-foreground/85">
           <div>
-            <p className="th-label mb-1 text-foreground">Aansprakelijkheid</p>
-            <p>
-              Thuishaven is niet aansprakelijk voor schade aan of verlies van persoonlijke
-              eigendommen tijdens het werk. Medewerkers zijn zelf verantwoordelijk voor hun
-              bezittingen.
-            </p>
+            <p className="mb-1 font-bold text-foreground">{DISCLAIMER.liabilityTitle}</p>
+            <p>{DISCLAIMER.liability}</p>
           </div>
           <div>
-            <p className="th-label mb-1 text-foreground">Belastingdienst</p>
-            <p>
-              Je wordt uitbetaald als freelancer. Je bent zelf verantwoordelijk voor het
-              opgeven van deze inkomsten bij de Belastingdienst.
-            </p>
+            <p className="mb-1 font-bold text-foreground">{DISCLAIMER.taxTitle}</p>
+            <p>{DISCLAIMER.tax}</p>
           </div>
-          <div className="border border-destructive bg-destructive/5 p-3">
-            <p className="th-heading text-sm tracking-[0.12em] text-destructive">Let op!!</p>
-            <p className="mt-1 text-destructive/90">
-              Je ontvangt geen loonstrook. Bewaar dit formulier als bewijs van je gewerkte
-              uren en betaling.
+          <div className="space-y-2">
+            <p className="font-bold uppercase tracking-wide text-foreground">
+              {DISCLAIMER.noPayslip}
+            </p>
+            <p>
+              {DISCLAIMER.taxNote}{" "}
+              <span className="font-bold text-destructive">{DISCLAIMER.idNote}</span>
             </p>
           </div>
         </div>
       </FormSection>
 
       {/* Handtekening */}
-      <FormSection title="Handtekening">
+      <FormSection title="Handtekening" complete={sectionComplete.signature}>
         <p className="text-sm text-muted-foreground">
           Door hieronder te tekenen ga je akkoord met bovenstaande voorwaarden.
         </p>
         <SignaturePad
+          complete={filled.signatureData}
           onChange={(data) => setValue("signatureData", data, { shouldValidate: true })}
         />
         {errors.signatureData && (
@@ -461,16 +557,41 @@ export function EmployeeForm() {
   );
 }
 
+function hasText(value?: string | null) {
+  return Boolean(value?.trim());
+}
+
 function FormSection({
   title,
   children,
+  complete = false,
 }: {
   title: string;
   children: React.ReactNode;
+  complete?: boolean;
 }) {
   return (
-    <Card className="th-panel gap-0 rounded-none py-0 ring-0">
-      <CardHeader className="border-b border-th-ink/10 px-4 py-3 sm:px-5">
+    <Card
+      className={cn(
+        "relative gap-0 rounded-none border py-0 ring-0 transition-colors",
+        complete
+          ? "border-th-green bg-th-green-light/35"
+          : "border-th-ink bg-white",
+      )}
+    >
+      {complete && (
+        <CheckCircle2
+          className="absolute top-3 right-3 size-5 text-th-green sm:top-3.5 sm:right-4"
+          strokeWidth={2}
+          aria-hidden
+        />
+      )}
+      <CardHeader
+        className={cn(
+          "border-b px-4 py-3 sm:px-5",
+          complete ? "border-th-green/25 pr-10 sm:pr-11" : "border-th-ink/10",
+        )}
+      >
         <CardTitle className="th-section-title">{title}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4 px-4 py-4 sm:px-5 sm:py-5">{children}</CardContent>
@@ -481,14 +602,23 @@ function FormSection({
 function FormField({
   label,
   error,
+  filled = false,
   children,
 }: {
   label: string;
   error?: string;
+  filled?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <div className="space-y-1.5">
+    <div
+      className={cn(
+        "space-y-1.5",
+        filled &&
+          !error &&
+          "[&_[data-slot=input]]:border-th-green [&_[data-slot=input]]:focus-visible:ring-th-green/25",
+      )}
+    >
       <Label className="th-label">{label}</Label>
       {children}
       {error && <p className="text-sm text-destructive">{error}</p>}

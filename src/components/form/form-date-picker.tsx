@@ -23,6 +23,7 @@ interface FormDatePickerProps {
   disabled?: boolean;
   id?: string;
   "aria-invalid"?: boolean;
+  complete?: boolean;
 }
 
 function toDate(value?: string): Date | undefined {
@@ -40,6 +41,7 @@ export function FormDatePicker({
   disabled,
   id,
   "aria-invalid": ariaInvalid,
+  complete,
 }: FormDatePickerProps) {
   const [open, setOpen] = useState(false);
   const selected = toDate(value);
@@ -67,14 +69,21 @@ export function FormDatePicker({
         disabled={disabled}
         aria-invalid={ariaInvalid || undefined}
         className={cn(
-          "flex h-10 w-full items-center justify-between border border-th-ink bg-white px-3 text-left text-base outline-none transition-colors md:text-sm",
-          "focus-visible:ring-2 focus-visible:ring-th-ink/20",
+          "flex h-10 w-full items-center justify-between border bg-white px-3 text-left text-base outline-none transition-colors md:text-sm",
+          complete
+            ? "border-th-green focus-visible:ring-2 focus-visible:ring-th-green/25"
+            : "border-th-ink focus-visible:ring-2 focus-visible:ring-th-ink/20",
           "disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-50",
           "aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20",
-          !selected && "text-muted-foreground",
         )}
       >
-        <span className={cn(selected && "font-medium text-foreground")}>
+        <span
+          className={cn(
+            selected
+              ? "font-medium text-foreground"
+              : "font-normal text-muted-foreground/55",
+          )}
+        >
           {selected
             ? format(selected, "d MMMM yyyy", { locale: nlDateFns })
             : placeholder}
@@ -84,7 +93,7 @@ export function FormDatePicker({
       <PopoverContent
         align="start"
         sideOffset={6}
-        className="w-auto rounded-none border border-th-ink bg-th-cream p-0 shadow-none ring-0"
+        className="w-auto overflow-hidden rounded-none border border-th-ink bg-th-cream p-0 shadow-none ring-0"
       >
         <div className="border-b border-th-ink/15 px-3 py-2">
           <p className="th-heading text-xs tracking-[0.16em] text-th-muted">
@@ -106,20 +115,28 @@ export function FormDatePicker({
             setOpen(false);
             onBlur?.();
           }}
-          className="rounded-none bg-th-cream p-3 [--cell-radius:0px] [--cell-size:2.4rem]"
+          className="rounded-none bg-th-cream p-3 [--cell-radius:0px] [--cell-size:2.25rem]"
           classNames={{
-            month_caption: "th-heading tracking-[0.08em]",
-            caption_label: "th-heading text-sm tracking-[0.1em]",
-            weekday:
-              "th-heading flex-1 text-[0.7rem] font-semibold tracking-[0.12em] text-th-muted",
-            today: "bg-accent/40 text-foreground",
-            dropdowns: "gap-2",
-            dropdown_root:
-              "rounded-none border border-th-ink/30 bg-white px-1",
+            month: "gap-3",
+            month_caption: "relative flex h-9 items-center justify-center",
+            nav: "absolute inset-x-0 top-0 flex items-center justify-between",
             button_previous:
-              "rounded-none border border-th-ink/20 hover:bg-white",
+              "rounded-none border border-th-ink/25 bg-white hover:bg-white",
             button_next:
-              "rounded-none border border-th-ink/20 hover:bg-white",
+              "rounded-none border border-th-ink/25 bg-white hover:bg-white",
+            dropdowns: "relative z-10 flex items-center justify-center gap-2",
+            dropdown_root:
+              "relative inline-flex h-8 min-w-[4.5rem] items-center rounded-none border border-th-ink/30 bg-white px-2",
+            caption_label:
+              "th-heading flex items-center gap-1 text-xs tracking-[0.08em] [&>svg]:size-3.5",
+            dropdown: "absolute inset-0 z-20 cursor-pointer opacity-0",
+            weekday:
+              "th-heading flex-1 text-[0.65rem] font-semibold tracking-[0.12em] text-th-muted",
+            today: "bg-accent/35 text-foreground",
+          }}
+          formatters={{
+            formatMonthDropdown: (date) =>
+              format(date, "MMM", { locale: nlDateFns }).toUpperCase(),
           }}
         />
       </PopoverContent>

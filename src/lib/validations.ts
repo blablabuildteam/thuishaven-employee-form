@@ -43,8 +43,8 @@ export const formSchema = z.object({
         message: checkIban(v).message || "Ongeldig IBAN",
       });
     }),
-  eventDate: z.string().min(1, "Datum project is verplicht"),
-  department: z.string().optional(),
+  eventDate: z.string().min(1, "Datum dienst is verplicht"),
+  department: z.string().min(1, "Afdeling is verplicht"),
   startTime: z.string().regex(/^\d{2}:\d{2}$/, "Gebruik HH:MM formaat"),
   endTime: z.string().regex(/^\d{2}:\d{2}$/, "Gebruik HH:MM formaat"),
   breakMinutes: z.coerce.number().min(0, "Pauze kan niet negatief zijn"),

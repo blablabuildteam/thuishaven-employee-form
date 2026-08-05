@@ -3,13 +3,15 @@
 import { useRef, useCallback } from "react";
 import SignatureCanvas from "react-signature-canvas";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface SignaturePadProps {
   onChange: (dataUrl: string) => void;
   value?: string;
+  complete?: boolean;
 }
 
-export function SignaturePad({ onChange }: SignaturePadProps) {
+export function SignaturePad({ onChange, complete }: SignaturePadProps) {
   const sigRef = useRef<SignatureCanvas>(null);
 
   const handleEnd = useCallback(() => {
@@ -25,7 +27,12 @@ export function SignaturePad({ onChange }: SignaturePadProps) {
 
   return (
     <div className="space-y-2">
-      <div className="border border-th-ink bg-white">
+      <div
+        className={cn(
+          "border bg-white",
+          complete ? "border-th-green" : "border-th-ink",
+        )}
+      >
         <SignatureCanvas
           ref={sigRef}
           penColor="black"

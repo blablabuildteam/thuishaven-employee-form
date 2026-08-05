@@ -104,7 +104,7 @@ export async function POST(request: Request) {
       data: {
         employeeId: employee.id,
         eventDate,
-        department: data.department || null,
+        department: data.department,
         startTime: data.startTime,
         endTime: data.endTime,
         breakMinutes: data.breakMinutes,

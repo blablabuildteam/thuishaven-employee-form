@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, CircleAlert, LoaderCircle } from "lucide-react";
+import { CircleAlert, LoaderCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { checkIban, formatIban, type IbanCheckResult } from "@/lib/iban";
 import { cn } from "@/lib/utils";
@@ -15,16 +15,12 @@ interface IbanFieldProps {
 }
 
 function StatusIcon({ status }: { status: IbanCheckResult["status"] }) {
-  if (status === "valid") {
-    return <CheckCircle2 className="size-4 text-th-green" aria-hidden />;
-  }
+  // Valid state is shown via FormField checkmark next to the label
   if (status === "invalid") {
     return <CircleAlert className="size-4 text-destructive" aria-hidden />;
   }
   if (status === "incomplete") {
-    return (
-      <LoaderCircle className="size-4 text-th-muted" aria-hidden />
-    );
+    return <LoaderCircle className="size-4 text-th-muted" aria-hidden />;
   }
   return null;
 }
@@ -58,24 +54,25 @@ export function IbanField({
           }}
           onBlur={onBlur}
           className={cn(
-            "pr-10 font-mono tracking-wide uppercase",
-            result.status === "valid" && "border-th-green focus-visible:ring-th-green/20",
+            "pr-10 tracking-wide",
+            result.status === "valid" &&
+              "border-th-green focus-visible:ring-th-green/25",
             result.status === "invalid" &&
               "border-destructive focus-visible:ring-destructive/20",
           )}
         />
-        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
-          <StatusIcon status={result.status} />
-        </span>
+        {result.status !== "empty" && result.status !== "valid" && (
+          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+            <StatusIcon status={result.status} />
+          </span>
+        )}
       </div>
 
       {result.status !== "empty" && result.message && (
         <p
           className={cn(
-            "text-xs",
-            result.status === "valid" && "text-th-green",
+            "text-xs text-muted-foreground",
             result.status === "invalid" && "text-destructive",
-            result.status === "incomplete" && "text-muted-foreground",
           )}
           role="status"
         >

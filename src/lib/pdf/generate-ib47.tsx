@@ -9,6 +9,7 @@ import {
   renderToBuffer,
 } from "@react-pdf/renderer";
 import { format } from "date-fns";
+import { DISCLAIMER } from "@/lib/disclaimer";
 
 const styles = StyleSheet.create({
   page: {
@@ -89,8 +90,14 @@ const styles = StyleSheet.create({
   },
   note: {
     marginTop: 4,
-    fontSize: 8,
-    fontStyle: "italic",
+    fontSize: 8.5,
+    fontFamily: "Helvetica-Bold",
+    color: "#8B0000",
+  },
+  taxFollowUp: {
+    marginTop: 4,
+    fontSize: 8.5,
+    lineHeight: 1.4,
   },
 });
 
@@ -142,7 +149,7 @@ function IB47Document({ employee, submission }: IB47Data) {
 
         <View style={styles.section}>
           <View style={styles.row}>
-            <Text style={styles.label}>Datum project:</Text>
+            <Text style={styles.label}>Datum dienst:</Text>
             <Text style={styles.value}>
               {format(eventDate, "dd-MM-yyyy")}
             </Text>
@@ -244,32 +251,16 @@ function IB47Document({ employee, submission }: IB47Data) {
         <View style={styles.divider} />
 
         <View style={styles.disclaimer}>
-          <Text style={styles.disclaimerTitle}>Aansprakelijkheid</Text>
-          <Text>
-            In geen enkel geval stelt Thuishaven Events B.V. zich
-            verantwoordelijk voor bovenstaande zaken. Door deze uitleg en het
-            tekenen van dit formulier laat je weten dat je op de hoogte bent van
-            de situaties die zich kunnen voordoen en je eigen verantwoording
-            neemt voor de aangifte van de belasting en je eigen verzekering.
-          </Text>
+          <Text style={styles.disclaimerTitle}>{DISCLAIMER.liabilityTitle}</Text>
+          <Text>{DISCLAIMER.liability}</Text>
 
-          <Text style={styles.disclaimerTitle}>Belastingdienst</Text>
-          <Text>
-            Wij geven deze bedragen door aan de Belastingdienst. Wanneer je
-            aangifte doet, is de Belastingdienst op de hoogte van het feit dat
-            je dit bedrag hebt ontvangen van Thuishaven Events B.V.
-          </Text>
+          <Text style={styles.disclaimerTitle}>{DISCLAIMER.taxTitle}</Text>
+          <Text>{DISCLAIMER.tax}</Text>
 
-          <Text style={styles.warning}>
-            ** LET OP!! JE KRIJGT VAN ONS DUS GEEN LOONSTROOKJE!!
-          </Text>
-          <Text style={styles.disclaimer}>
-            Houd er dus rekening mee dat je wellicht over dit bedrag belasting
-            moet betalen.
-          </Text>
-          <Text style={styles.note}>
-            *Let op! Zonder kopie paspoort / ID (geen rijbewijs), of met een
-            incompleet formulier kan er helaas geen uitbetaling plaatsvinden.
+          <Text style={styles.warning}>{DISCLAIMER.noPayslip}</Text>
+          <Text style={styles.taxFollowUp}>
+            {DISCLAIMER.taxNote}{" "}
+            <Text style={styles.note}>{DISCLAIMER.idNote}</Text>
           </Text>
         </View>
       </Page>
