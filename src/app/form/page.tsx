@@ -3,7 +3,7 @@ import { FormShell } from "@/components/form/form-shell";
 
 export default function FormPage() {
   return (
-    <FormShell subtitle="Medewerker registratie">
+    <FormShell subtitle="Medewerker Dienst Registratie">
       <div className="mb-6 text-center">
         <p className="text-sm text-muted-foreground sm:text-base">
           Vul onderstaand formulier volledig in om je dienst te registreren als medewerker.

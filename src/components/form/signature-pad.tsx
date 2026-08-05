@@ -37,8 +37,8 @@ export function SignaturePad({ onChange, complete }: SignaturePadProps) {
           ref={sigRef}
           penColor="black"
           canvasProps={{
-            className: "w-full h-40 touch-none",
-            style: { width: "100%", height: "160px" },
+            className: "w-full h-72 touch-none",
+            style: { width: "100%", height: "288px" },
           }}
           onEnd={handleEnd}
         />

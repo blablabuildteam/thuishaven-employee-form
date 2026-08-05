@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 export function FormShell({
   children,
   className,
-  subtitle = "Medewerker registratie",
+  subtitle = "Medewerker Dienst Registratie",
   showFooter = true,
 }: {
   children: React.ReactNode;
