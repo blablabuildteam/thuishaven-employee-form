@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Employee {
+  id          String   @id @default(cuid())
+  firstName   String
+  lastName    String
+  dateOfBirth DateTime
+  bsn         String   @unique
+
+  street      String
+  houseNumber String
+  postalCode  String
+  city        String
+
+  email String
+  phone String
+
+  iban String
+
+  isBlocked Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  submissions Submission[]
+  alerts      Alert[]
+
+  @@index([lastName, dateOfBirth])
+}
+
+model Submission {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id])
+
+  eventDate  DateTime
+  department String?
+
+  startTime    String
+  endTime      String
+  breakMinutes Int     @default(0)
+
+  hourlyRate Decimal @db.Decimal(10, 2)
+  totalHours Decimal @db.Decimal(10, 2)
+  totalPay   Decimal @db.Decimal(10, 2)
+
+  signatureData String? @db.Text
+
+  pdfUrl         String?
+  pdfGeneratedAt DateTime?
+
+  status     SubmissionStatus @default(PENDING)
+  reviewedAt DateTime?
+  reviewedBy String?
+
+  createdAt DateTime @default(now())
+  ipAddress String?
+  userAgent String?
+
+  @@index([employeeId])
+  @@index([eventDate])
+  @@index([createdAt])
+}
+
+model Alert {
+  id         String    @id @default(cuid())
+  employeeId String
+  employee   Employee  @relation(fields: [employeeId], references: [id])
+  type       AlertType
+  message    String
+
+  acknowledged   Boolean   @default(false)
+  acknowledgedAt DateTime?
+  acknowledgedBy String?
+
+  createdAt DateTime @default(now())
+
+  @@index([employeeId])
+  @@index([acknowledged, createdAt])
+}
+
+enum SubmissionStatus {
+  PENDING
+  REVIEWED
+  BLOCKED
+}
+
+enum AlertType {
+  THREE_SHIFTS
+  FOUR_SHIFTS
+  CONTRACT_NEEDED
+}
