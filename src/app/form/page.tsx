@@ -6,7 +6,7 @@ export default function FormPage() {
     <FormShell subtitle="Medewerker registratie">
       <div className="mb-6 text-center">
         <p className="text-sm text-muted-foreground sm:text-base">
-          Vul onderstaand formulier volledig in om je te registreren als medewerker.
+          Vul onderstaand formulier volledig in om je dienst te registreren als medewerker.
         </p>
       </div>
       <EmployeeForm />
