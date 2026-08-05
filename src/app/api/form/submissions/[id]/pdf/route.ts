@@ -1,19 +1,22 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { verifySubmissionDownloadToken } from "@/lib/pdf/download-token";
 import { buildSubmissionPdf } from "@/lib/pdf/build-submission-pdf";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await auth();
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { id } = await params;
+  const token = new URL(request.url).searchParams.get("token");
+
+  if (!token || !verifySubmissionDownloadToken(id, token)) {
+    return NextResponse.json(
+      { error: "Ongeldige of verlopen downloadlink" },
+      { status: 403 },
+    );
   }
 
-  const { id } = await params;
   const result = await buildSubmissionPdf(id);
-
   if (!result) {
     return NextResponse.json(
       { error: "Inzending niet gevonden" },
@@ -29,6 +32,7 @@ export async function GET(
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="${result.filename}"`,
+      "Cache-Control": "private, no-store",
     },
   });
 }

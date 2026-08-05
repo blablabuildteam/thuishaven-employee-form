@@ -7,6 +7,7 @@ import {
   calculateTotalPay,
 } from "@/lib/pay-calculation";
 import { generateIB47PDF } from "@/lib/pdf/generate-ib47";
+import { createSubmissionDownloadToken } from "@/lib/pdf/download-token";
 
 export async function POST(request: Request) {
   try {
@@ -144,37 +145,45 @@ export async function POST(request: Request) {
       });
     }
 
-    await generateIB47PDF({
-      employee: {
-        firstName: employee.firstName,
-        lastName: employee.lastName,
-        dateOfBirth: employee.dateOfBirth.toISOString(),
-        bsn: data.bsn,
-        street: employee.street,
-        houseNumber: employee.houseNumber,
-        postalCode: employee.postalCode,
-        city: employee.city,
-        phone: employee.phone,
-        email: employee.email,
-        iban: data.iban,
-      },
-      submission: {
-        eventDate: submission.eventDate.toISOString(),
-        department: submission.department,
-        startTime: submission.startTime,
-        endTime: submission.endTime,
-        breakMinutes: submission.breakMinutes,
-        hourlyRate: Number(submission.hourlyRate),
-        totalHours: Number(submission.totalHours),
-        totalPay: Number(submission.totalPay),
-        signatureData: submission.signatureData,
-        createdAt: submission.createdAt.toISOString(),
-      },
-    });
+    // Warm PDF generation so first download is faster; ignore failures here.
+    try {
+      await generateIB47PDF({
+        employee: {
+          firstName: employee.firstName,
+          lastName: employee.lastName,
+          dateOfBirth: employee.dateOfBirth.toISOString(),
+          bsn: data.bsn,
+          street: employee.street,
+          houseNumber: employee.houseNumber,
+          postalCode: employee.postalCode,
+          city: employee.city,
+          phone: employee.phone,
+          email: employee.email,
+          iban: data.iban,
+        },
+        submission: {
+          eventDate: submission.eventDate.toISOString(),
+          department: submission.department,
+          startTime: submission.startTime,
+          endTime: submission.endTime,
+          breakMinutes: submission.breakMinutes,
+          hourlyRate: Number(submission.hourlyRate),
+          totalHours: Number(submission.totalHours),
+          totalPay: Number(submission.totalPay),
+          signatureData: submission.signatureData,
+          createdAt: submission.createdAt.toISOString(),
+        },
+      });
+    } catch (pdfError) {
+      console.error("PDF warm generation failed:", pdfError);
+    }
+
+    const downloadToken = createSubmissionDownloadToken(submission.id);
 
     return NextResponse.json({
       success: true,
       submissionId: submission.id,
+      downloadToken,
     });
   } catch (error) {
     console.error("Form submission error:", error);

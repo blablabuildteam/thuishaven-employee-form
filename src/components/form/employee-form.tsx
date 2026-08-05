@@ -166,6 +166,20 @@ export function EmployeeForm() {
         return;
       }
 
+      const result = (await res.json()) as {
+        submissionId?: string;
+        downloadToken?: string;
+      };
+
+      if (result.submissionId && result.downloadToken) {
+        const params = new URLSearchParams({
+          id: result.submissionId,
+          token: result.downloadToken,
+        });
+        router.push(`/form/success?${params.toString()}`);
+        return;
+      }
+
       router.push("/form/success");
     } catch {
       setError("root", {
