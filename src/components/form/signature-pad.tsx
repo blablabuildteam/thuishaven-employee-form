@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useEffect } from "react";
 import SignatureCanvas from "react-signature-canvas";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -11,8 +11,18 @@ interface SignaturePadProps {
   complete?: boolean;
 }
 
-export function SignaturePad({ onChange, complete }: SignaturePadProps) {
+export function SignaturePad({ onChange, value, complete }: SignaturePadProps) {
   const sigRef = useRef<SignatureCanvas>(null);
+
+  // Load once per mount (parent remounts via key after prefill).
+  useEffect(() => {
+    if (!value) return;
+    const id = requestAnimationFrame(() => {
+      sigRef.current?.fromDataURL(value);
+    });
+    return () => cancelAnimationFrame(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount-only hydrate
+  }, []);
 
   const handleEnd = useCallback(() => {
     if (sigRef.current && !sigRef.current.isEmpty()) {

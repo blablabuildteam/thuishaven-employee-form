@@ -1,6 +1,20 @@
 import { z } from "zod";
 import { checkIban, validateIban } from "@/lib/iban";
 
+export function todayIsoLocal(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+export function isDienstDateValid(value?: string): boolean {
+  return Boolean(
+    value && /^\d{4}-\d{2}-\d{2}$/.test(value) && value <= todayIsoLocal(),
+  );
+}
+
 function validateBSN(bsn: string): boolean {
   if (!/^\d{9}$/.test(bsn)) return false;
   const digits = bsn.split("").map(Number);
@@ -43,7 +57,13 @@ export const formSchema = z.object({
         message: checkIban(v).message || "Ongeldig IBAN",
       });
     }),
-  eventDate: z.string().min(1, "Datum dienst is verplicht"),
+  eventDate: z
+    .string()
+    .min(1, "Datum dienst is verplicht")
+    .refine(
+      (value) => !/^\d{4}-\d{2}-\d{2}$/.test(value) || value <= todayIsoLocal(),
+      "Datum dienst kan niet in de toekomst liggen",
+    ),
   department: z.string().min(1, "Afdeling is verplicht"),
   startTime: z.string().regex(/^\d{2}:\d{2}$/, "Gebruik HH:MM formaat"),
   endTime: z.string().regex(/^\d{2}:\d{2}$/, "Gebruik HH:MM formaat"),

@@ -18,7 +18,7 @@ interface FormDatePickerProps {
   onChange: (value: string) => void;
   onBlur?: () => void;
   placeholder?: string;
-  /** birth = past dates + year dropdown; event = nearby dates */
+  /** birth = past dates + year dropdown; event = up to today */
   variant?: "birth" | "event";
   disabled?: boolean;
   id?: string;
@@ -51,10 +51,8 @@ export function FormDatePicker({
     variant === "birth"
       ? new Date(today.getFullYear() - 80, 0)
       : new Date(today.getFullYear() - 1, 0);
-  const endMonth =
-    variant === "birth"
-      ? today
-      : new Date(today.getFullYear() + 2, 11);
+  // Both birth and dienst dates are capped at today (no future dates).
+  const endMonth = today;
 
   return (
     <Popover
@@ -108,7 +106,7 @@ export function FormDatePicker({
           endMonth={endMonth}
           selected={selected}
           defaultMonth={selected ?? (variant === "birth" ? new Date(2000, 0) : today)}
-          disabled={variant === "birth" ? { after: today } : undefined}
+          disabled={{ after: today }}
           onSelect={(date) => {
             if (!date) return;
             onChange(format(date, "yyyy-MM-dd"));

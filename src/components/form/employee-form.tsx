@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useForm, Controller, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { formSchema, type FormData } from "@/lib/validations";
+import { formSchema, isDienstDateValid, type FormData } from "@/lib/validations";
 import {
   calculateHourlyRate,
   calculateTotalHours,
@@ -35,6 +35,7 @@ export function EmployeeForm() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLookingUp, setIsLookingUp] = useState(false);
+  const [signaturePadKey, setSignaturePadKey] = useState(0);
   const [payInfo, setPayInfo] = useState<PayInfo>({
     category: null,
     hourlyRate: 0,
@@ -47,6 +48,7 @@ export function EmployeeForm() {
     control,
     handleSubmit,
     setValue,
+    reset,
     watch,
     setError,
     formState: { errors, dirtyFields },
@@ -93,7 +95,7 @@ export function EmployeeForm() {
     phone: hasText(values.phone),
     email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email ?? ""),
     iban: validateIban(values.iban ?? ""),
-    eventDate: hasText(values.eventDate),
+    eventDate: isDienstDateValid(values.eventDate),
     department: hasText(values.department),
     startTime: /^\d{2}:\d{2}$/.test(values.startTime ?? ""),
     endTime: /^\d{2}:\d{2}$/.test(values.endTime ?? ""),
@@ -241,12 +243,33 @@ export function EmployeeForm() {
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(amount);
 
+  const prefillTestData =
+    process.env.NODE_ENV === "development"
+      ? async () => {
+          const { DEV_TEST_FORM_DATA } = await import("@/lib/dev-test-form-data");
+          reset(DEV_TEST_FORM_DATA, { keepDefaultValues: true });
+          setSignaturePadKey((key) => key + 1);
+        }
+      : null;
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-5" noValidate>
       {/* Honeypot */}
       <div className="absolute -left-[9999px]" aria-hidden="true">
         <input type="text" tabIndex={-1} autoComplete="off" {...register("honeypot")} />
       </div>
+
+      {prefillTestData && (
+        <div className="border border-dashed border-th-ink/30 bg-th-cream/80 px-3 py-2 text-center">
+          <button
+            type="button"
+            onClick={() => void prefillTestData()}
+            className="th-label text-xs tracking-[0.14em] text-th-muted underline-offset-4 hover:underline"
+          >
+            Prefill testdata (alleen lokaal)
+          </button>
+        </div>
+      )}
 
       {/* Persoonlijke gegevens */}
       <FormSection title="Persoonlijke gegevens" complete={sectionComplete.personal}>
@@ -535,7 +558,9 @@ export function EmployeeForm() {
           Door hieronder te tekenen ga je akkoord met bovenstaande voorwaarden.
         </p>
         <SignaturePad
+          key={signaturePadKey}
           complete={filled.signatureData}
+          value={values.signatureData}
           onChange={(data) => setValue("signatureData", data, { shouldValidate: true })}
         />
         {errors.signatureData && (
