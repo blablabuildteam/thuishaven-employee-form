@@ -46,14 +46,14 @@ export function EmployeeFilters({
             setSearch(e.target.value);
             navigateWithParams(e.target.value, currentStatus);
           }}
-          className="pl-9"
+          className="h-10 pl-9"
         />
       </div>
       <Select
         value={currentStatus}
         onValueChange={(val) => navigateWithParams(search, val ?? "all")}
       >
-        <SelectTrigger className="w-full sm:w-44">
+        <SelectTrigger className="h-10 w-full rounded-none data-[size=default]:h-10 sm:w-44">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

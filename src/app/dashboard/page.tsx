@@ -19,6 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { ClickableTableRow } from "@/components/dashboard/clickable-table-row";
 import { Users, FileText, AlertTriangle, Ban } from "lucide-react";
 
 function formatCurrency(amount: number): string {
@@ -136,14 +137,12 @@ export default async function DashboardPage() {
                 </TableHeader>
                 <TableBody>
                   {recentSubmissions.map((sub) => (
-                    <TableRow key={sub.id}>
-                      <TableCell>
-                        <Link
-                          href={`/dashboard/employees/${sub.employeeId}`}
-                          className="hover:underline"
-                        >
-                          {sub.employee.firstName} {sub.employee.lastName}
-                        </Link>
+                    <ClickableTableRow
+                      key={sub.id}
+                      href={`/dashboard/employees/${sub.employeeId}`}
+                    >
+                      <TableCell className="font-medium">
+                        {sub.employee.firstName} {sub.employee.lastName}
                       </TableCell>
                       <TableCell>
                         {format(sub.eventDate, "dd-MM-yyyy")}
@@ -154,7 +153,7 @@ export default async function DashboardPage() {
                       <TableCell className="text-right">
                         {formatCurrency(Number(sub.totalPay))}
                       </TableCell>
-                    </TableRow>
+                    </ClickableTableRow>
                   ))}
                 </TableBody>
               </Table>

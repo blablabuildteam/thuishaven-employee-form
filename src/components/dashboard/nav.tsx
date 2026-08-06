@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -15,6 +16,30 @@ import {
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+function BrandMark({ compact = false }: { compact?: boolean }) {
+  return (
+    <Link href="/dashboard" className="flex items-center gap-2.5">
+      <Image
+        src="/brand/totem.png"
+        alt=""
+        width={compact ? 28 : 36}
+        height={compact ? 28 : 36}
+        className={cn(
+          "shrink-0 object-contain",
+          compact ? "size-7" : "size-9",
+        )}
+        priority
+      />
+      <div className="min-w-0">
+        <p className="th-heading text-sm tracking-[0.2em]">THUISHAVEN</p>
+        {!compact && (
+          <p className="mt-0.5 text-xs text-sidebar-foreground/60">HR Dashboard</p>
+        )}
+      </div>
+    </Link>
+  );
+}
 
 const navItems = [
   { href: "/dashboard", label: "Overzicht", icon: LayoutDashboard },
@@ -79,9 +104,8 @@ export function DashboardNav({
   return (
     <>
       <aside className="hidden w-60 shrink-0 flex-col bg-sidebar text-sidebar-foreground md:flex">
-        <div className="border-b border-sidebar-border px-4 py-5">
-          <p className="th-heading text-sm tracking-[0.2em]">THUISHAVEN</p>
-          <p className="mt-1 text-xs text-sidebar-foreground/60">HR Dashboard</p>
+        <div className="border-b border-sidebar-border px-4 py-4">
+          <BrandMark />
         </div>
 
         <div className="flex-1 px-3 py-4">
@@ -104,7 +128,7 @@ export function DashboardNav({
 
       <div className="border-b border-border bg-sidebar text-sidebar-foreground md:hidden">
         <div className="flex items-center justify-between px-4 py-3">
-          <p className="th-heading text-sm tracking-[0.2em]">THUISHAVEN</p>
+          <BrandMark compact />
           <Button
             variant="ghost"
             size="icon"
