@@ -8,10 +8,50 @@ import {
 } from "@/lib/pay-calculation";
 import { generateIB47PDF } from "@/lib/pdf/generate-ib47";
 import { createSubmissionDownloadToken } from "@/lib/pdf/download-token";
+import {
+  idDocumentErrorMessage,
+  uploadIdentityDocument,
+  validateIdDocumentFile,
+} from "@/lib/id-document";
+
+async function parseSubmitRequest(request: Request): Promise<{
+  data: unknown;
+  idDocument: File | null;
+}> {
+  const contentType = request.headers.get("content-type") || "";
+
+  if (contentType.includes("multipart/form-data")) {
+    const formData = await request.formData();
+    const payload = formData.get("payload");
+    if (typeof payload !== "string") {
+      throw new Error("INVALID_PAYLOAD");
+    }
+    const idDocument = formData.get("idDocument");
+    return {
+      data: JSON.parse(payload) as unknown,
+      idDocument: idDocument instanceof File ? idDocument : null,
+    };
+  }
+
+  return {
+    data: await request.json(),
+    idDocument: null,
+  };
+}
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    let body: unknown;
+    let idDocument: File | null;
+
+    try {
+      ({ data: body, idDocument } = await parseSubmitRequest(request));
+    } catch {
+      return NextResponse.json(
+        { error: "Ongeldige formulierdata" },
+        { status: 400 },
+      );
+    }
 
     const parsed = formSchema.safeParse(body);
     if (!parsed.success) {
@@ -32,17 +72,23 @@ export async function POST(request: Request) {
 
     const existingEmployee = await prisma.employee.findUnique({
       where: { bsn: data.bsn },
-      include: { _count: { select: { submissions: true } } },
+      include: {
+        _count: { select: { submissions: true } },
+        identityDocument: { select: { id: true } },
+      },
     });
 
-    if (existingEmployee?.isBlocked) {
-      return NextResponse.json(
-        {
-          error:
-            "Je account is geblokkeerd. Neem contact op met HR voor een arbeidscontract.",
-        },
-        { status: 403 },
-      );
+    const needsIdDocument =
+      !existingEmployee || !existingEmployee.identityDocument;
+
+    if (needsIdDocument) {
+      const validation = validateIdDocumentFile(idDocument);
+      if (!validation.ok) {
+        return NextResponse.json(
+          { error: idDocumentErrorMessage(validation.error) },
+          { status: 400 },
+        );
+      }
     }
 
     const eventDate = new Date(data.eventDate);
@@ -65,6 +111,36 @@ export async function POST(request: Request) {
     );
     const totalPay = calculateTotalPay(hourlyRate, totalHours);
 
+    let uploadedDoc:
+      | Awaited<ReturnType<typeof uploadIdentityDocument>>
+      | null = null;
+
+    if (needsIdDocument && idDocument) {
+      const validation = validateIdDocumentFile(idDocument);
+      if (!validation.ok) {
+        return NextResponse.json(
+          { error: idDocumentErrorMessage(validation.error) },
+          { status: 400 },
+        );
+      }
+      try {
+        uploadedDoc = await uploadIdentityDocument({
+          file: idDocument,
+          contentType: validation.contentType,
+          bsn: data.bsn,
+        });
+      } catch (uploadError) {
+        console.error("ID document upload failed:", uploadError);
+        return NextResponse.json(
+          {
+            error:
+              "Uploaden van het ID-document is mislukt. Probeer het opnieuw.",
+          },
+          { status: 500 },
+        );
+      }
+    }
+
     let employee;
     if (existingEmployee) {
       employee = await prisma.employee.update({
@@ -80,6 +156,19 @@ export async function POST(request: Request) {
           phone: data.phone,
           email: data.email,
           iban: data.iban,
+          ...(uploadedDoc
+            ? {
+                identityDocument: {
+                  create: {
+                    blobUrl: uploadedDoc.blobUrl,
+                    pathname: uploadedDoc.pathname,
+                    contentType: uploadedDoc.contentType,
+                    originalName: uploadedDoc.originalName,
+                    sizeBytes: uploadedDoc.sizeBytes,
+                  },
+                },
+              }
+            : {}),
         },
       });
     } else {
@@ -96,6 +185,19 @@ export async function POST(request: Request) {
           phone: data.phone,
           email: data.email,
           iban: data.iban,
+          ...(uploadedDoc
+            ? {
+                identityDocument: {
+                  create: {
+                    blobUrl: uploadedDoc.blobUrl,
+                    pathname: uploadedDoc.pathname,
+                    contentType: uploadedDoc.contentType,
+                    originalName: uploadedDoc.originalName,
+                    sizeBytes: uploadedDoc.sizeBytes,
+                  },
+                },
+              }
+            : {}),
         },
       });
     }
@@ -123,25 +225,22 @@ export async function POST(request: Request) {
       ? existingEmployee._count.submissions + 1
       : 1;
 
+    // Soft alerts only — employees can keep submitting; HR retains flexibility.
     if (shiftCount === 3) {
       await prisma.alert.create({
         data: {
           employeeId: employee.id,
           type: "THREE_SHIFTS",
-          message: `${employee.firstName} ${employee.lastName} heeft 3 diensten gewerkt. Overweeg een arbeidscontract.`,
+          message: `${employee.firstName} ${employee.lastName} heeft 3 diensten gewerkt. Een arbeidscontract is waarschijnlijk nodig.`,
         },
       });
-    } else if (shiftCount >= 4) {
+    } else if (shiftCount === 4) {
       await prisma.alert.create({
         data: {
           employeeId: employee.id,
           type: "FOUR_SHIFTS",
-          message: `${employee.firstName} ${employee.lastName} heeft ${shiftCount} diensten gewerkt en is geblokkeerd.`,
+          message: `${employee.firstName} ${employee.lastName} heeft 4 diensten gewerkt. Contractactie vereist.`,
         },
-      });
-      await prisma.employee.update({
-        where: { id: employee.id },
-        data: { isBlocked: true },
       });
     }
 

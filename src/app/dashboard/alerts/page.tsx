@@ -12,7 +12,7 @@ function getAlertTypeLabel(type: string): string {
     case "THREE_SHIFTS":
       return "3-shift waarschuwing";
     case "FOUR_SHIFTS":
-      return "4-shift blokkade";
+      return "4-shift contractactie";
     case "CONTRACT_NEEDED":
       return "Contract vereist";
     default:

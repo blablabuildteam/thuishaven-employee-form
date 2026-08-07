@@ -24,9 +24,10 @@ export async function GET(request: NextRequest) {
     });
   }
 
+  // Blocking is disabled — HR uses shift alerts for contract follow-up instead.
   return NextResponse.json({
     exists: true,
-    blocked: employee.isBlocked,
+    blocked: false,
     shiftCount: employee._count.submissions,
   });
 }

@@ -66,9 +66,9 @@ A digital intake system that replaces the paper form entirely.
 
 ```
 1. Opens form link
-2. Enters BSN (or name + DOB)
-3. System recognises them, pre-fills known data
-4. Updates shift-specific info (times, date, department)
+2. Enters BSN first
+3. System recognises them, pre-fills known data and locks those fields
+4. Fills only shift-specific info (date, department, times, break) + signature
 5. Signs and submits for new shift
 6. (If blocked) Sees message: "Contact HR before your next shift"
 ```
@@ -102,7 +102,7 @@ A digital intake system that replaces the paper form entirely.
 |---------|-------------|
 | Public intake form | Mobile-optimised, all fields from physical form, validation |
 | Shift/pay fields | Start time, end time, break, department, auto-calculated pay |
-| Hourly rate tiers | Age-based: 18/19yr = €13.25/hr, ≥20yr = €14.75/hr (auto-calculated from DOB) |
+| Hourly rate tiers | Age-based: 18/19yr = €13.50/hr, ≥20yr = €15.00/hr (auto-calculated from DOB) |
 | Digital signature | Draw-on-screen signature pad |
 | Employee deduplication | Recognise returning staff by BSN |
 | PDF generation | Server-side, matching Thuishaven IB47-formulier layout (branding TBD) |
@@ -154,8 +154,8 @@ Matching the current physical Thuishaven IB47-formulier:
 
 ### Pay (auto-calculated)
 - Hourly rate (Uurloon) — determined by age from DOB:
-  - 18/19 jaar = €13.25 per uur
-  - ≥ 20 jaar = €14.75 per uur
+  - 18/19 jaar = €13.50 per uur
+  - ≥ 20 jaar = €15.00 per uur
 - Total hours worked
 - Total pay (Totaal)
 
@@ -245,7 +245,8 @@ This system processes **sensitive personal data**:
 
 ### Form Submission
 - [ ] All fields validate correctly (BSN 11-proef, IBAN format, etc.)
-- [ ] Returning employees are recognised and data pre-filled
+- [ ] Returning employees are recognised by BSN; known data is pre-filled and locked
+- [ ] First-time staff upload passport/ID-card copy; stored on employee profile (private Blob)
 - [ ] Form works smoothly on mobile (iOS Safari, Android Chrome)
 - [ ] Submission creates database record and generates PDF
 - [ ] Digital signature captured and included in PDF

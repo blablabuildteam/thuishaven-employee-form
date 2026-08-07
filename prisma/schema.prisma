@@ -28,16 +28,32 @@ model Employee {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  submissions Submission[]
-  alerts      Alert[]
+  submissions      Submission[]
+  alerts           Alert[]
+  identityDocument IdentityDocument?
 
   @@index([lastName, dateOfBirth])
+}
+
+/** Passport / ID-card copy — required on first registration, stored on the employee profile. */
+model IdentityDocument {
+  id           String   @id @default(cuid())
+  employeeId   String   @unique
+  employee     Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  blobUrl      String
+  pathname     String
+  contentType  String
+  originalName String
+  sizeBytes    Int
+
+  uploadedAt DateTime @default(now())
 }
 
 model Submission {
   id         String   @id @default(cuid())
   employeeId String
-  employee   Employee @relation(fields: [employeeId], references: [id])
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   eventDate  DateTime
   department String?
@@ -71,7 +87,7 @@ model Submission {
 model Alert {
   id         String    @id @default(cuid())
   employeeId String
-  employee   Employee  @relation(fields: [employeeId], references: [id])
+  employee   Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   type       AlertType
   message    String
 

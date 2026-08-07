@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ClickableTableRow } from "@/components/dashboard/clickable-table-row";
-import { Users, FileText, AlertTriangle, Ban } from "lucide-react";
+import { Users, FileText, AlertTriangle, FileWarning } from "lucide-react";
 
 function formatCurrency(amount: number): string {
   return `€${amount.toFixed(2).replace(".", ",")}`;
@@ -33,14 +33,16 @@ export default async function DashboardPage() {
 
   const [
     totalEmployees,
-    blockedEmployees,
+    employeesWithShiftCounts,
     submissionsThisWeek,
     pendingAlerts,
     recentSubmissions,
     alertsList,
   ] = await Promise.all([
     prisma.employee.count(),
-    prisma.employee.count({ where: { isBlocked: true } }),
+    prisma.employee.findMany({
+      select: { _count: { select: { submissions: true } } },
+    }),
     prisma.submission.count({
       where: { createdAt: { gte: weekStart, lte: weekEnd } },
     }),
@@ -57,6 +59,10 @@ export default async function DashboardPage() {
       include: { employee: true },
     }),
   ]);
+
+  const contractAttentionCount = employeesWithShiftCounts.filter(
+    (e) => e._count.submissions >= 3,
+  ).length;
 
   const stats = [
     {
@@ -81,11 +87,11 @@ export default async function DashboardPage() {
       highlight: pendingAlerts > 0,
     },
     {
-      label: "Geblokkeerde medewerkers",
-      value: blockedEmployees,
-      icon: Ban,
-      href: "/dashboard/employees?status=blocked",
-      highlight: blockedEmployees > 0,
+      label: "Contract opvolging (3+)",
+      value: contractAttentionCount,
+      icon: FileWarning,
+      href: "/dashboard/alerts",
+      highlight: contractAttentionCount > 0,
     },
   ];
 
@@ -203,7 +209,7 @@ export default async function DashboardPage() {
                         }
                       >
                         {alert.type === "FOUR_SHIFTS"
-                          ? "Geblokkeerd"
+                          ? "Contractactie"
                           : "Waarschuwing"}
                       </Badge>
                     </div>

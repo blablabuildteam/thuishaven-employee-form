@@ -240,7 +240,7 @@ Matching the physical Thuishaven IB47-formulier exactly:
 ### Pay (auto-calculated, read-only)
 | Field | Type | Calculation | Display |
 |-------|------|-------------|---------|
-| Hourly rate | currency | 18/19yr → €13.25, ≥20yr → €14.75 (from DOB) | ✓ |
+| Hourly rate | currency | 18/19yr → €13.50, ≥20yr → €15.00 (from DOB) | ✓ |
 | Total hours | decimal | (end - start - break) in hours | ✓ |
 | Total pay | currency | hourly rate × total hours | ✓ |
 
@@ -257,8 +257,8 @@ Matching the physical Thuishaven IB47-formulier exactly:
 function calculateHourlyRate(dateOfBirth: Date, eventDate: Date): number {
   const age = differenceInYears(eventDate, dateOfBirth);
 
-  if (age >= 20) return 14.75;
-  if (age >= 18) return 13.25;
+  if (age >= 20) return 15.0;
+  if (age >= 18) return 13.5;
 
   throw new Error('Employee must be at least 18 years old');
 }

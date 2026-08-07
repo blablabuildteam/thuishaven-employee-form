@@ -22,17 +22,18 @@ export async function GET(request: NextRequest) {
     ];
   }
 
-  if (status === "active") {
-    where.isBlocked = false;
-  } else if (status === "blocked") {
-    where.isBlocked = true;
-  }
-
   const employees = await prisma.employee.findMany({
     where,
     include: { _count: { select: { submissions: true } } },
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json({ employees });
+  const filtered =
+    status === "contract"
+      ? employees.filter((e) => e._count.submissions >= 3)
+      : status === "under3"
+        ? employees.filter((e) => e._count.submissions < 3)
+        : employees;
+
+  return NextResponse.json({ employees: filtered });
 }

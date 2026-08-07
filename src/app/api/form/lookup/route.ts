@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
       phone: true,
       email: true,
       iban: true,
+      identityDocument: { select: { id: true } },
     },
   });
 
@@ -31,11 +32,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ found: false });
   }
 
+  const { identityDocument, ...profile } = employee;
+
   return NextResponse.json({
     found: true,
+    hasIdentityDocument: Boolean(identityDocument),
     employee: {
-      ...employee,
-      dateOfBirth: employee.dateOfBirth.toISOString().split("T")[0],
+      ...profile,
+      dateOfBirth: profile.dateOfBirth.toISOString().split("T")[0],
     },
   });
 }

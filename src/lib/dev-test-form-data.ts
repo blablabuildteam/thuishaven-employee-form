@@ -1,7 +1,7 @@
-import type { FormData } from "@/lib/validations";
+import type { FormData as EmployeeFormValues } from "@/lib/validations";
 
 /** Local-only fixture — imported only from development UI. */
-export const DEV_TEST_FORM_DATA: FormData = {
+export const DEV_TEST_FORM_DATA: EmployeeFormValues = {
   firstName: "Yannith",
   lastName: "Oostervoor",
   dateOfBirth: "1999-11-02",

@@ -58,8 +58,8 @@ export function EmployeeFilters({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Alle statussen</SelectItem>
-          <SelectItem value="active">Actief</SelectItem>
-          <SelectItem value="blocked">Geblokkeerd</SelectItem>
+          <SelectItem value="under3">Minder dan 3 diensten</SelectItem>
+          <SelectItem value="contract">Contract opvolging (3+)</SelectItem>
         </SelectContent>
       </Select>
     </div>

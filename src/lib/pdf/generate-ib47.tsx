@@ -10,6 +10,7 @@ import {
 } from "@react-pdf/renderer";
 import { format } from "date-fns";
 import { DISCLAIMER } from "@/lib/disclaimer";
+import { getAgeCategory, RATE_18_19, RATE_20_PLUS } from "@/lib/pay-calculation";
 
 const styles = StyleSheet.create({
   page: {
@@ -139,7 +140,9 @@ function IB47Document({ employee, submission }: IB47Data) {
       ? employee.dateOfBirth
       : new Date(employee.dateOfBirth);
 
-  const is18_19 = submission.hourlyRate < 14.75;
+  const is18_19 = getAgeCategory(dob, eventDate) === "18/19";
+  const rate18_19 = RATE_18_19.toFixed(2).replace(".", ",");
+  const rate20Plus = RATE_20_PLUS.toFixed(2).replace(".", ",");
 
   return (
     <Document>
@@ -220,12 +223,12 @@ function IB47Document({ employee, submission }: IB47Data) {
           <View style={styles.row}>
             <Text style={styles.label}>Uurloon:</Text>
             <Text style={styles.value}>
-              {is18_19 ? "☑" : "☐"} 18/19 jaar = €13,25 per uur
+              {is18_19 ? "☑" : "☐"} 18/19 jaar = €{rate18_19} per uur
             </Text>
           </View>
           <View style={styles.rateRow}>
             <Text>
-              {!is18_19 ? "☑" : "☐"} ≥ 20 jaar = €14,75 per uur
+              {!is18_19 ? "☑" : "☐"} ≥ 20 jaar = €{rate20Plus} per uur
             </Text>
           </View>
         </View>

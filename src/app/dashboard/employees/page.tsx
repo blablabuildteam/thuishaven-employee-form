@@ -37,8 +37,6 @@ export default async function EmployeesPage({
       { lastName: { contains: search, mode: "insensitive" } },
     ];
   }
-  if (statusFilter === "active") where.isBlocked = false;
-  else if (statusFilter === "blocked") where.isBlocked = true;
 
   const employees = await prisma.employee.findMany({
     where,
@@ -53,13 +51,19 @@ export default async function EmployeesPage({
     orderBy: { lastName: "asc" },
   });
 
+  const filtered = employees.filter((emp) => {
+    if (statusFilter === "contract") return emp._count.submissions >= 3;
+    if (statusFilter === "under3") return emp._count.submissions < 3;
+    return true;
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Medewerkers</h1>
           <p className="text-sm text-muted-foreground">
-            {employees.length} medewerker{employees.length !== 1 ? "s" : ""}{" "}
+            {filtered.length} medewerker{filtered.length !== 1 ? "s" : ""}{" "}
             gevonden
           </p>
         </div>
@@ -69,7 +73,7 @@ export default async function EmployeesPage({
 
       <Card>
         <CardContent>
-          {employees.length === 0 ? (
+          {filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Users className="mb-3 size-10 text-muted-foreground/50" />
               <p className="text-sm font-medium">Geen medewerkers gevonden</p>
@@ -90,45 +94,50 @@ export default async function EmployeesPage({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {employees.map((emp) => (
-                  <TableRow key={emp.id}>
-                    <TableCell className="font-medium">
-                      <Link
-                        href={`/dashboard/employees/${emp.id}`}
-                        className="hover:underline"
-                      >
-                        {emp.firstName} {emp.lastName}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {maskBsn(emp.bsn)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {emp._count.submissions}
-                    </TableCell>
-                    <TableCell>
-                      {emp.isBlocked ? (
-                        <Badge variant="destructive">Geblokkeerd</Badge>
-                      ) : (
-                        <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-200">
-                          Actief
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {emp.submissions[0]
-                        ? format(emp.submissions[0].eventDate, "dd-MM-yyyy")
-                        : "—"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <EmployeeActions
-                        employeeId={emp.id}
-                        isBlocked={emp.isBlocked}
-                        lastSubmissionId={emp.submissions[0]?.id}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {filtered.map((emp) => {
+                  const needsContract = emp._count.submissions >= 3;
+                  return (
+                    <TableRow key={emp.id}>
+                      <TableCell className="font-medium">
+                        <Link
+                          href={`/dashboard/employees/${emp.id}`}
+                          className="hover:underline"
+                        >
+                          {emp.firstName} {emp.lastName}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {maskBsn(emp.bsn)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {emp._count.submissions}
+                      </TableCell>
+                      <TableCell>
+                        {needsContract ? (
+                          <Badge className="border-amber-200 bg-amber-500/15 text-amber-800">
+                            Contract opvolging
+                          </Badge>
+                        ) : (
+                          <Badge className="border-emerald-200 bg-emerald-500/15 text-emerald-700">
+                            Actief
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {emp.submissions[0]
+                          ? format(emp.submissions[0].eventDate, "dd-MM-yyyy")
+                          : "—"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <EmployeeActions
+                          employeeId={emp.id}
+                          employeeName={`${emp.firstName} ${emp.lastName}`}
+                          lastSubmissionId={emp.submissions[0]?.id}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}

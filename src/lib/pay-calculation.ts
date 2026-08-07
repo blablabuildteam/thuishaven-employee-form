@@ -1,7 +1,8 @@
 import { differenceInYears } from "date-fns";
 
-const RATE_18_19 = 13.25;
-const RATE_20_PLUS = 14.75;
+/** DAGCONTRACT 2025 rates */
+export const RATE_18_19 = 13.5;
+export const RATE_20_PLUS = 15;
 
 export function calculateHourlyRate(
   dateOfBirth: Date,
