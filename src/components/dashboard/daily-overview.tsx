@@ -5,7 +5,14 @@ import { useRouter } from "next/navigation";
 import { format, parseISO } from "date-fns";
 import { nl } from "date-fns/locale";
 import { Download, FileText, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { DailyDatePicker } from "@/components/dashboard/daily-date-picker";
+import {
+  SubmissionDetailDialog,
+  type SubmissionDetailData,
+  type SubmissionDetailEmployee,
+  type SubmissionDetailResponse,
+} from "@/components/dashboard/submission-detail-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -36,12 +43,70 @@ type DailyOverviewProps = {
   initialHasMore: boolean;
 };
 
+function toDailyRow(
+  employee: SubmissionDetailEmployee,
+  submission: SubmissionDetailData,
+): DailySubmissionRow {
+  return {
+    id: submission.id,
+    eventDate: submission.eventDate.slice(0, 10),
+    department: submission.department,
+    startTime: submission.startTime,
+    endTime: submission.endTime,
+    breakMinutes: submission.breakMinutes,
+    hourlyRate: submission.hourlyRate,
+    totalHours: submission.totalHours,
+    totalPay: submission.totalPay,
+    employee: {
+      id: employee.id,
+      firstName: employee.firstName,
+      lastName: employee.lastName,
+    },
+  };
+}
+
+function applySubmissionUpdate(
+  days: DailyDayGroup[],
+  data: SubmissionDetailResponse,
+): DailyDayGroup[] {
+  const dateKey = data.submission.eventDate.slice(0, 10);
+  const nextRow = toDailyRow(data.employee, data.submission);
+
+  return days.map((day) => {
+    const without = day.submissions
+      .filter((row) => row.id !== nextRow.id)
+      .map((row) =>
+        row.employee.id === data.employee.id
+          ? {
+              ...row,
+              employee: {
+                id: data.employee.id,
+                firstName: data.employee.firstName,
+                lastName: data.employee.lastName,
+              },
+            }
+          : row,
+      );
+
+    if (day.date !== dateKey) {
+      return { ...day, submissions: without };
+    }
+
+    const submissions = [...without, nextRow].sort((a, b) =>
+      a.startTime.localeCompare(b.startTime),
+    );
+    return { ...day, submissions };
+  });
+}
+
 function DaySection({
   day,
   highlighted,
+  onSubmissionSaved,
 }: {
   day: DailyDayGroup;
   highlighted: boolean;
+  onSubmissionSaved: (data: SubmissionDetailResponse) => void;
 }) {
   const totalHours = day.submissions.reduce(
     (sum, s) => sum + s.totalHours,
@@ -64,7 +129,7 @@ function DaySection({
           <p className="text-xs text-muted-foreground">
             {day.submissions.length === 0
               ? "Geen inschrijvingen"
-              : `${day.submissions.length} inschrijving${day.submissions.length === 1 ? "" : "en"}`}
+              : `${day.submissions.length} inschrijving${day.submissions.length === 1 ? "" : "en"} · Klik op een rij voor details`}
           </p>
         </div>
         {day.submissions.length > 0 && (
@@ -84,7 +149,12 @@ function DaySection({
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <DayTable submissions={day.submissions} totalHours={totalHours} totalPay={totalPay} />
+            <DayTable
+              submissions={day.submissions}
+              totalHours={totalHours}
+              totalPay={totalPay}
+              onSubmissionSaved={onSubmissionSaved}
+            />
           </div>
         )}
       </CardContent>
@@ -96,79 +166,150 @@ function DayTable({
   submissions,
   totalHours,
   totalPay,
+  onSubmissionSaved,
 }: {
   submissions: DailySubmissionRow[];
   totalHours: number;
   totalPay: number;
+  onSubmissionSaved: (data: SubmissionDetailResponse) => void;
 }) {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [employee, setEmployee] = useState<SubmissionDetailEmployee | null>(
+    null,
+  );
+  const [submission, setSubmission] = useState<SubmissionDetailData | null>(
+    null,
+  );
+  const requestIdRef = useRef(0);
+
+  async function openDetails(id: string) {
+    const requestId = ++requestIdRef.current;
+    setOpen(true);
+    setLoading(true);
+    setEmployee(null);
+    setSubmission(null);
+
+    try {
+      const res = await fetch(`/api/dashboard/submissions/${id}`);
+      if (!res.ok) throw new Error("Laden mislukt");
+      const data = (await res.json()) as {
+        employee: SubmissionDetailEmployee;
+        submission: SubmissionDetailData;
+      };
+      if (requestId !== requestIdRef.current) return;
+      setEmployee(data.employee);
+      setSubmission(data.submission);
+    } catch {
+      if (requestId !== requestIdRef.current) return;
+      setOpen(false);
+      toast.error("Kon inschrijving niet laden. Probeer het opnieuw.");
+    } finally {
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+      }
+    }
+  }
+
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Naam</TableHead>
-          <TableHead>Afdeling</TableHead>
-          <TableHead>Starttijd</TableHead>
-          <TableHead>Eindtijd</TableHead>
-          <TableHead>Pauze</TableHead>
-          <TableHead className="text-right">Uren</TableHead>
-          <TableHead className="text-right">Uurloon</TableHead>
-          <TableHead className="text-right">Totaal</TableHead>
-          <TableHead className="text-center">PDF</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {submissions.map((sub) => (
-          <TableRow key={sub.id}>
-            <TableCell className="font-medium">
-              {sub.employee.firstName} {sub.employee.lastName}
-            </TableCell>
-            <TableCell>{sub.department ?? "—"}</TableCell>
-            <TableCell>{sub.startTime}</TableCell>
-            <TableCell>{sub.endTime}</TableCell>
-            <TableCell>{sub.breakMinutes} min</TableCell>
-            <TableCell className="text-right">
-              {sub.totalHours.toFixed(1)}
-            </TableCell>
-            <TableCell className="text-right">
-              {formatCurrency(sub.hourlyRate)}
-            </TableCell>
-            <TableCell className="text-right">
-              {formatCurrency(sub.totalPay)}
-            </TableCell>
-            <TableCell className="text-center">
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                render={
-                  <a
-                    href={`/api/dashboard/submissions/${sub.id}/pdf`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  />
-                }
-              >
-                <Download className="size-4" />
-              </Button>
-            </TableCell>
+    <>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Naam</TableHead>
+            <TableHead>Afdeling</TableHead>
+            <TableHead>Starttijd</TableHead>
+            <TableHead>Eindtijd</TableHead>
+            <TableHead>Pauze</TableHead>
+            <TableHead className="text-right">Uren</TableHead>
+            <TableHead className="text-right">Uurloon</TableHead>
+            <TableHead className="text-right">Totaal</TableHead>
+            <TableHead className="text-center">PDF</TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-      <TableFooter>
-        <TableRow>
-          <TableCell colSpan={5} className="font-medium">
-            Totaal
-          </TableCell>
-          <TableCell className="text-right font-medium">
-            {totalHours.toFixed(1)}
-          </TableCell>
-          <TableCell />
-          <TableCell className="text-right font-medium">
-            {formatCurrency(totalPay)}
-          </TableCell>
-          <TableCell />
-        </TableRow>
-      </TableFooter>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {submissions.map((sub) => (
+            <TableRow
+              key={sub.id}
+              role="button"
+              tabIndex={0}
+              className="cursor-pointer"
+              onClick={() => void openDetails(sub.id)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  void openDetails(sub.id);
+                }
+              }}
+            >
+              <TableCell className="font-medium">
+                {sub.employee.firstName} {sub.employee.lastName}
+              </TableCell>
+              <TableCell>{sub.department ?? "—"}</TableCell>
+              <TableCell>{sub.startTime}</TableCell>
+              <TableCell>{sub.endTime}</TableCell>
+              <TableCell>{sub.breakMinutes} min</TableCell>
+              <TableCell className="text-right">
+                {sub.totalHours.toFixed(1)}
+              </TableCell>
+              <TableCell className="text-right">
+                {formatCurrency(sub.hourlyRate)}
+              </TableCell>
+              <TableCell className="text-right">
+                {formatCurrency(sub.totalPay)}
+              </TableCell>
+              <TableCell
+                className="text-center"
+                onClick={(event) => event.stopPropagation()}
+                onKeyDown={(event) => event.stopPropagation()}
+              >
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  render={
+                    <a
+                      href={`/api/dashboard/submissions/${sub.id}/pdf`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    />
+                  }
+                >
+                  <Download className="size-4" />
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+        <TableFooter>
+          <TableRow>
+            <TableCell colSpan={5} className="font-medium">
+              Totaal
+            </TableCell>
+            <TableCell className="text-right font-medium">
+              {totalHours.toFixed(1)}
+            </TableCell>
+            <TableCell />
+            <TableCell className="text-right font-medium">
+              {formatCurrency(totalPay)}
+            </TableCell>
+            <TableCell />
+          </TableRow>
+        </TableFooter>
+      </Table>
+
+      <SubmissionDetailDialog
+        open={open}
+        onOpenChange={setOpen}
+        employee={employee}
+        submission={submission}
+        loading={loading}
+        onSaved={(data) => {
+          setEmployee(data.employee);
+          setSubmission(data.submission);
+          onSubmissionSaved(data);
+        }}
+      />
+    </>
   );
 }
 
@@ -291,6 +432,9 @@ export function DailyOverview({
             key={day.date}
             day={day}
             highlighted={day.date === anchorDate && isJumping}
+            onSubmissionSaved={(data) => {
+              setDays((current) => applySubmissionUpdate(current, data));
+            }}
           />
         ))}
       </div>

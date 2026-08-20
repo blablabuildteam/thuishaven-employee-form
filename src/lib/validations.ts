@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DEPARTMENTS } from "@/lib/departments";
 import { checkIban, validateIban } from "@/lib/iban";
 
 export function todayIsoLocal(): string {
@@ -64,7 +65,13 @@ export const formSchema = z.object({
       (value) => !/^\d{4}-\d{2}-\d{2}$/.test(value) || value <= todayIsoLocal(),
       "Datum dienst kan niet in de toekomst liggen",
     ),
-  department: z.string().min(1, "Afdeling is verplicht"),
+  department: z
+    .string()
+    .min(1, "Kies een afdeling")
+    .refine(
+      (value) => (DEPARTMENTS as readonly string[]).includes(value),
+      "Kies een afdeling",
+    ),
   startTime: z.string().regex(/^\d{2}:\d{2}$/, "Gebruik HH:MM formaat"),
   endTime: z.string().regex(/^\d{2}:\d{2}$/, "Gebruik HH:MM formaat"),
   breakMinutes: z.coerce.number().min(0, "Pauze kan niet negatief zijn"),
@@ -73,3 +80,15 @@ export const formSchema = z.object({
 });
 
 export type FormData = z.infer<typeof formSchema>;
+
+export const submissionEditSchema = formSchema
+  .omit({
+    signatureData: true,
+    honeypot: true,
+  })
+  .extend({
+    // Older submissions may still have a free-text department.
+    department: z.string().min(1, "Afdeling is verplicht"),
+  });
+
+export type SubmissionEditData = z.infer<typeof submissionEditSchema>;

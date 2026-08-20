@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { Download } from "lucide-react";
 import {
@@ -32,7 +33,15 @@ export function EmployeeSubmissionsTable({
   employee,
   submissions,
 }: EmployeeSubmissionsTableProps) {
+  const router = useRouter();
+  const [employeeState, setEmployeeState] = useState(employee);
+  const [rows, setRows] = useState(submissions);
   const [selected, setSelected] = useState<SubmissionDetailData | null>(null);
+
+  useEffect(() => {
+    setEmployeeState(employee);
+    setRows(submissions);
+  }, [employee, submissions]);
 
   return (
     <>
@@ -52,7 +61,7 @@ export function EmployeeSubmissionsTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {submissions.map((sub) => (
+          {rows.map((sub) => (
             <TableRow
               key={sub.id}
               role="button"
@@ -116,8 +125,18 @@ export function EmployeeSubmissionsTable({
         onOpenChange={(open) => {
           if (!open) setSelected(null);
         }}
-        employee={employee}
+        employee={employeeState}
         submission={selected}
+        onSaved={(data) => {
+          setEmployeeState(data.employee);
+          setSelected(data.submission);
+          setRows((current) =>
+            current.map((row) =>
+              row.id === data.submission.id ? data.submission : row,
+            ),
+          );
+          router.refresh();
+        }}
       />
     </>
   );

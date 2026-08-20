@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SignaturePad } from "@/components/form/signature-pad";
 import { AddressAutocomplete } from "@/components/form/address-autocomplete";
+import { DepartmentSelect } from "@/components/form/department-select";
 import { FormDatePicker } from "@/components/form/form-date-picker";
 import { IbanField } from "@/components/form/iban-field";
 import { IdDocumentUpload } from "@/components/form/id-document-upload";
@@ -86,13 +87,16 @@ export function EmployeeForm() {
     totalPay: 0,
   });
   const lookupInFlightRef = useRef<string | null>(null);
+  const currentLookupKeyRef = useRef<string | null>(null);
   const currentBsnRef = useRef("");
+  const currentNameKeyRef = useRef("");
 
   const {
     register,
     control,
     handleSubmit,
     setValue,
+    getValues,
     reset,
     watch,
     setError,
@@ -209,6 +213,7 @@ export function EmployeeForm() {
     setIsReturningEmployee(false);
     setHasIdentityDocument(false);
     setUnlockedFields(INITIAL_UNLOCKED);
+    currentNameKeyRef.current = "";
   }, []);
 
   // When an ID is already on file, clear any staged upload.
@@ -226,35 +231,58 @@ export function EmployeeForm() {
     });
   }, []);
 
+  const applyEmployee = useCallback(
+    (data: {
+      employee: Record<string, string | undefined>;
+      hasIdentityDocument?: boolean;
+    }) => {
+      for (const field of KNOWN_EMPLOYEE_FIELDS) {
+        if (data.employee[field]) {
+          setValue(field, data.employee[field], { shouldValidate: true });
+        }
+      }
+      if (data.employee.bsn) {
+        setValue("bsn", data.employee.bsn, { shouldValidate: true });
+        currentBsnRef.current = data.employee.bsn;
+        setMatchedBsn(data.employee.bsn);
+      }
+      if (data.employee.firstName && data.employee.lastName) {
+        currentNameKeyRef.current = nameLookupKey(
+          data.employee.firstName,
+          data.employee.lastName,
+        );
+      }
+      setIsReturningEmployee(true);
+      setHasIdentityDocument(Boolean(data.hasIdentityDocument));
+      setUnlockedFields(INITIAL_UNLOCKED);
+    },
+    [setValue],
+  );
+
   const lookupBsn = useCallback(
     async (bsn: string) => {
       if (!/^\d{9}$/.test(bsn)) return;
       if (bsn === matchedBsn) return;
-      if (lookupInFlightRef.current === bsn) return;
+      const lookupKey = `bsn:${bsn}`;
+      if (lookupInFlightRef.current === lookupKey) return;
 
-      lookupInFlightRef.current = bsn;
+      lookupInFlightRef.current = lookupKey;
+      currentLookupKeyRef.current = lookupKey;
       setIsLookingUp(true);
       try {
-        const [lookupRes, statusRes] = await Promise.all([
+        const [lookupRes] = await Promise.all([
           fetch(`/api/form/lookup?bsn=${bsn}`),
           fetch(`/api/form/check-status?bsn=${bsn}`),
         ]);
 
         // Ignore stale responses if the user kept typing
+        if (currentLookupKeyRef.current !== lookupKey) return;
         if (currentBsnRef.current !== bsn) return;
 
         if (lookupRes.ok) {
           const data = await lookupRes.json();
           if (data.employee) {
-            for (const field of KNOWN_EMPLOYEE_FIELDS) {
-              if (data.employee[field]) {
-                setValue(field, data.employee[field], { shouldValidate: true });
-              }
-            }
-            setMatchedBsn(bsn);
-            setIsReturningEmployee(true);
-            setHasIdentityDocument(Boolean(data.hasIdentityDocument));
-            setUnlockedFields(INITIAL_UNLOCKED);
+            applyEmployee(data);
           } else {
             if (matchedBsn) {
               clearKnownEmployeeFields();
@@ -265,15 +293,57 @@ export function EmployeeForm() {
       } catch {
         // Lookup failed silently — user can still fill in manually
       } finally {
-        if (lookupInFlightRef.current === bsn) {
+        if (lookupInFlightRef.current === lookupKey) {
           lookupInFlightRef.current = null;
         }
-        if (currentBsnRef.current === bsn) {
+        if (currentLookupKeyRef.current === lookupKey) {
           setIsLookingUp(false);
         }
       }
     },
-    [setValue, matchedBsn, clearKnownEmployeeFields, clearReturningState],
+    [applyEmployee, matchedBsn, clearKnownEmployeeFields, clearReturningState],
+  );
+
+  const lookupByName = useCallback(
+    async (firstName: string, lastName: string) => {
+      const first = firstName.trim();
+      const last = lastName.trim();
+      if (!first || !last) return;
+
+      const nameKey = nameLookupKey(first, last);
+      if (matchedBsn && currentNameKeyRef.current === nameKey) return;
+
+      const lookupKey = `name:${nameKey}`;
+      if (lookupInFlightRef.current === lookupKey) return;
+
+      lookupInFlightRef.current = lookupKey;
+      currentLookupKeyRef.current = lookupKey;
+      currentNameKeyRef.current = nameKey;
+      setIsLookingUp(true);
+      try {
+        const params = new URLSearchParams({ firstName: first, lastName: last });
+        const lookupRes = await fetch(`/api/form/lookup?${params}`);
+
+        if (currentLookupKeyRef.current !== lookupKey) return;
+
+        if (lookupRes.ok) {
+          const data = await lookupRes.json();
+          if (data.employee) {
+            applyEmployee(data);
+          }
+        }
+      } catch {
+        // Lookup failed silently — user can still fill in manually
+      } finally {
+        if (lookupInFlightRef.current === lookupKey) {
+          lookupInFlightRef.current = null;
+        }
+        if (currentLookupKeyRef.current === lookupKey) {
+          setIsLookingUp(false);
+        }
+      }
+    },
+    [applyEmployee, matchedBsn],
   );
 
   const handleBsnChange = useCallback(
@@ -307,6 +377,14 @@ export function EmployeeForm() {
     },
     [matchedBsn, clearKnownEmployeeFields, clearReturningState, lookupBsn],
   );
+
+  const handleNameBlur = useCallback(() => {
+    if (isReturningEmployee) return;
+    const firstName = getValues("firstName");
+    const lastName = getValues("lastName");
+    if (!firstName.trim() || !lastName.trim()) return;
+    void lookupByName(firstName, lastName);
+  }, [getValues, isReturningEmployee, lookupByName]);
 
   const phoneLocked = isReturningEmployee && !unlockedFields.phone;
   const emailLocked = isReturningEmployee && !unlockedFields.email;
@@ -421,7 +499,7 @@ export function EmployeeForm() {
         </div>
       )}
 
-      {/* Persoonlijke gegevens — BSN first for returning-employee lookup */}
+      {/* Persoonlijke gegevens — BSN or full name for returning-employee lookup */}
       <FormSection title="Persoonlijke gegevens" complete={sectionComplete.personal}>
         <FormField label="BSN / Sofinummer" error={errors.bsn?.message} filled={filled.bsn}>
           <div className="relative">
@@ -436,7 +514,7 @@ export function EmployeeForm() {
                 },
               })}
             />
-            {isLookingUp && (
+            {isLookingUp && /^\d{9}$/.test(values.bsn ?? "") && (
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                 Zoeken…
               </span>
@@ -448,15 +526,26 @@ export function EmployeeForm() {
             <Input
               placeholder="Jan"
               disabled={isReturningEmployee}
-              {...register("firstName")}
+              {...register("firstName", {
+                onBlur: handleNameBlur,
+              })}
             />
           </FormField>
           <FormField label="Achternaam" error={errors.lastName?.message} filled={filled.lastName}>
-            <Input
-              placeholder="De Vries"
-              disabled={isReturningEmployee}
-              {...register("lastName")}
-            />
+            <div className="relative">
+              <Input
+                placeholder="De Vries"
+                disabled={isReturningEmployee}
+                {...register("lastName", {
+                  onBlur: handleNameBlur,
+                })}
+              />
+              {isLookingUp && !/^\d{9}$/.test(values.bsn ?? "") && (
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                  Zoeken…
+                </span>
+              )}
+            </div>
           </FormField>
         </div>
         <FormField
@@ -653,7 +742,20 @@ export function EmployeeForm() {
           />
         </FormField>
         <FormField label="Afdeling" error={errors.department?.message} filled={filled.department}>
-          <Input placeholder="Bar, garderobe, etc." {...register("department")} />
+          <Controller
+            name="department"
+            control={control}
+            render={({ field }) => (
+              <DepartmentSelect
+                id="department"
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                aria-invalid={!!errors.department}
+                complete={filled.department && !errors.department}
+              />
+            )}
+          />
         </FormField>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <FormField label="Starttijd" error={errors.startTime?.message} filled={filled.startTime}>
@@ -829,6 +931,10 @@ function hasText(value?: string | null) {
   return Boolean(value?.trim());
 }
 
+function nameLookupKey(firstName: string, lastName: string) {
+  return `${firstName.trim().toLowerCase()}|${lastName.trim().toLowerCase()}`;
+}
+
 function FormSection({
   title,
   children,
@@ -906,7 +1012,7 @@ function FormField({
         "space-y-1.5",
         filled &&
           !error &&
-          "[&_[data-slot=input]]:border-th-green [&_[data-slot=input]]:focus-visible:ring-th-green/25",
+          "[&_[data-slot=input]]:border-th-green [&_[data-slot=input]]:focus-visible:ring-th-green/25 [&_[data-slot=select-trigger]]:border-th-green [&_[data-slot=select-trigger]]:focus-visible:ring-th-green/25",
       )}
     >
       <div className="flex items-center justify-between gap-2">

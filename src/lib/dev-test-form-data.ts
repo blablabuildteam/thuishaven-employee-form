@@ -16,7 +16,7 @@ export const DEV_TEST_FORM_DATA: EmployeeFormValues = {
   // Known-valid NL example IBAN (manual test IBAN failed checksum)
   iban: "NL91 ABNA 0417 1643 00",
   eventDate: "2023-08-04",
-  department: "RM",
+  department: "Bar",
   startTime: "10:00",
   endTime: "01:00",
   breakMinutes: 0,

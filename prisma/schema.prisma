@@ -79,6 +79,10 @@ model Submission {
   ipAddress String?
   userAgent String?
 
+  editedAt      DateTime?
+  editedBy      String?
+  editedByEmail String?
+
   @@index([employeeId])
   @@index([eventDate])
   @@index([createdAt])

@@ -50,6 +50,8 @@ export default async function EmployeeDetailPage({
           totalPay: true,
           signatureData: true,
           createdAt: true,
+          editedAt: true,
+          editedBy: true,
         },
       },
       identityDocument: true,
@@ -193,6 +195,7 @@ export default async function EmployeeDetailPage({
             ) : (
               <EmployeeSubmissionsTable
                 employee={{
+                  id: employee.id,
                   firstName: employee.firstName,
                   lastName: employee.lastName,
                   dateOfBirth: employee.dateOfBirth.toISOString(),
@@ -217,6 +220,8 @@ export default async function EmployeeDetailPage({
                   totalPay: Number(sub.totalPay),
                   signatureData: sub.signatureData,
                   createdAt: sub.createdAt.toISOString(),
+                  editedAt: sub.editedAt?.toISOString() ?? null,
+                  editedBy: sub.editedBy,
                 }))}
               />
             )}
