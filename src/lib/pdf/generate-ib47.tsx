@@ -70,12 +70,6 @@ const styles = StyleSheet.create({
     lineHeight: 1,
     marginTop: 0.5,
   },
-  totalValue: {
-    flex: 1,
-    flexDirection: "row",
-    flexWrap: "nowrap",
-    alignItems: "center",
-  },
   signatureSection: {
     marginTop: 4,
     marginBottom: 8,
@@ -182,7 +176,7 @@ function IB47Document({ employee, submission }: IB47Data) {
 
   return (
     <Document>
-      <Page size="A4" style={styles.page} wrap={false}>
+      <Page size="A4" style={styles.page}>
         <Text style={styles.header}>THUISHAVEN</Text>
         <Text style={styles.subheader}>IB47-formulier</Text>
 
