@@ -499,28 +499,8 @@ export function EmployeeForm() {
         </div>
       )}
 
-      {/* Persoonlijke gegevens — BSN or full name for returning-employee lookup */}
+      {/* Persoonlijke gegevens — full name or BSN for returning-employee lookup */}
       <FormSection title="Persoonlijke gegevens" complete={sectionComplete.personal}>
-        <FormField label="BSN / Sofinummer" error={errors.bsn?.message} filled={filled.bsn}>
-          <div className="relative">
-            <Input
-              placeholder="123456789"
-              maxLength={9}
-              inputMode="numeric"
-              {...register("bsn", {
-                onChange: handleBsnChange,
-                onBlur: (e) => {
-                  void handleBsnBlur(e);
-                },
-              })}
-            />
-            {isLookingUp && /^\d{9}$/.test(values.bsn ?? "") && (
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                Zoeken…
-              </span>
-            )}
-          </div>
-        </FormField>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FormField label="Voornaam" error={errors.firstName?.message} filled={filled.firstName}>
             <Input
@@ -548,6 +528,26 @@ export function EmployeeForm() {
             </div>
           </FormField>
         </div>
+        <FormField label="BSN / Sofinummer" error={errors.bsn?.message} filled={filled.bsn}>
+          <div className="relative">
+            <Input
+              placeholder="123456789"
+              maxLength={9}
+              inputMode="numeric"
+              {...register("bsn", {
+                onChange: handleBsnChange,
+                onBlur: (e) => {
+                  void handleBsnBlur(e);
+                },
+              })}
+            />
+            {isLookingUp && /^\d{9}$/.test(values.bsn ?? "") && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                Zoeken…
+              </span>
+            )}
+          </div>
+        </FormField>
         <FormField
           label="Geboortedatum"
           error={errors.dateOfBirth?.message}
