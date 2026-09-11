@@ -117,10 +117,11 @@ export function contractInviteEmail(opts: {
     html: brandedEmailHtml({
       heading: "Arbeidscontract",
       bodyHtml: `<p>Hoi ${opts.firstName},</p>
-<p>Thuishaven heeft een 0-uren oproepovereenkomst voor je klaargezet. Bevestig je identiteit met BSN en geboortedatum, vul de ontbrekende gegevens in en onderteken het contract en het huishoudelijk reglement.</p>`,
+<p>Erg blij zijn wij met jouw inzet binnen het bedrijf. Wij zouden jou daarom dan ook graag een oproepovereenkomst voor bepaalde tijd (1 jaar) aanbieden.</p>
+<p>Thuishaven heeft een 0-uren oproepovereenkomst voor je klaargezet. Open de link hieronder, bevestig je identiteit met BSN en geboortedatum, vul de ontbrekende gegevens in en onderteken het contract en het huishoudelijk reglement.</p>`,
       cta: { href: opts.link, label: "Open je contract" },
     }),
-    text: `Hoi ${opts.firstName},\n\nThuishaven heeft een 0-uren oproepovereenkomst voor je klaargezet:\n${opts.link}\n\nBevestig je identiteit met BSN en geboortedatum, vul de ontbrekende gegevens in en onderteken beide documenten.\n\nThuishaven Events B.V.`,
+    text: `Hoi ${opts.firstName},\n\nErg blij zijn wij met jouw inzet binnen het bedrijf. Wij zouden jou daarom dan ook graag een oproepovereenkomst voor bepaalde tijd (1 jaar) aanbieden.\n\nThuishaven heeft een 0-uren oproepovereenkomst voor je klaargezet. Open de link hieronder, bevestig je identiteit met BSN en geboortedatum, vul de ontbrekende gegevens in en onderteken het contract en het huishoudelijk reglement.\n\n${opts.link}\n\nThuishaven Events B.V.`,
   };
 }
 

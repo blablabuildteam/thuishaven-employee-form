@@ -20,6 +20,7 @@ import {
   yesNo,
 } from "@/lib/contracts/pdf-data";
 import { formatCurrency } from "@/lib/format";
+import { isValidSignatureDataUrl } from "@/lib/signatures/validate";
 
 const styles = StyleSheet.create({
   page: {
@@ -287,9 +288,9 @@ function OproepDocument({ data }: { data: ContractDocumentData }) {
           <View style={styles.signatureCol}>
             <Text>Handtekening werkgever</Text>
             <View style={styles.signatureBox}>
-              {data.employerSignatureData ? (
+              {isValidSignatureDataUrl(data.employerSignatureData) ? (
                 <Image
-                  src={data.employerSignatureData}
+                  src={data.employerSignatureData!}
                   style={styles.signatureImage}
                 />
               ) : (
@@ -303,9 +304,9 @@ function OproepDocument({ data }: { data: ContractDocumentData }) {
           <View style={styles.signatureCol}>
             <Text>Handtekening werknemer</Text>
             <View style={styles.signatureBox}>
-              {data.employeeSignatureData ? (
+              {isValidSignatureDataUrl(data.employeeSignatureData) ? (
                 <Image
-                  src={data.employeeSignatureData}
+                  src={data.employeeSignatureData!}
                   style={styles.signatureImage}
                 />
               ) : (

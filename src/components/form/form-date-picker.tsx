@@ -157,9 +157,11 @@ export function FormDatePicker({
   const [year, setYear] = useState(() => partsFromValue(value).year);
   const monthRef = useRef<HTMLInputElement>(null);
   const yearRef = useRef<HTMLInputElement>(null);
+  const partsRef = useRef({ day, month, year });
 
   useEffect(() => {
     const next = partsFromValue(value);
+    partsRef.current = next;
     setDay(next.day);
     setMonth(next.month);
     setYear(next.year);
@@ -173,6 +175,7 @@ export function FormDatePicker({
   }
 
   function applyParts(nextDay: string, nextMonth: string, nextYear: string) {
+    partsRef.current = { day: nextDay, month: nextMonth, year: nextYear };
     setDay(nextDay);
     setMonth(nextMonth);
     setYear(nextYear);
@@ -184,11 +187,22 @@ export function FormDatePicker({
     if (date) commitDate(date);
   }
 
+  function padPart(raw: string) {
+    if (raw.length !== 1 || raw === "0") return raw;
+    return raw.padStart(2, "0");
+  }
+
   function handleCalendarSelect(date: Date) {
+    const next = {
+      day: format(date, "dd"),
+      month: format(date, "MM"),
+      year: format(date, "yyyy"),
+    };
+    partsRef.current = next;
     commitDate(date);
-    setDay(format(date, "dd"));
-    setMonth(format(date, "MM"));
-    setYear(format(date, "yyyy"));
+    setDay(next.day);
+    setMonth(next.month);
+    setYear(next.year);
     setOpen(false);
     onBlur?.();
   }
@@ -209,11 +223,17 @@ export function FormDatePicker({
             value={day}
             onChange={(event) => {
               const next = digitsOnly(event.target.value, 2);
-              applyParts(next, month, year);
-              if (next.length === 2) monthRef.current?.focus();
+              applyParts(next, partsRef.current.month, partsRef.current.year);
+              if (next.length === 2) {
+                queueMicrotask(() => monthRef.current?.focus());
+              }
             }}
             onBlur={() => {
-              if (day.length === 1) applyParts(day.padStart(2, "0"), month, year);
+              const current = partsRef.current;
+              const padded = padPart(current.day);
+              if (padded !== current.day) {
+                applyParts(padded, current.month, current.year);
+              }
               onBlur?.();
             }}
             className="w-8 bg-transparent text-center font-medium outline-none placeholder:font-normal placeholder:text-muted-foreground/55 disabled:cursor-not-allowed"
@@ -232,11 +252,17 @@ export function FormDatePicker({
             value={month}
             onChange={(event) => {
               const next = digitsOnly(event.target.value, 2);
-              applyParts(day, next, year);
-              if (next.length === 2) yearRef.current?.focus();
+              applyParts(partsRef.current.day, next, partsRef.current.year);
+              if (next.length === 2) {
+                queueMicrotask(() => yearRef.current?.focus());
+              }
             }}
             onBlur={() => {
-              if (month.length === 1) applyParts(day, month.padStart(2, "0"), year);
+              const current = partsRef.current;
+              const padded = padPart(current.month);
+              if (padded !== current.month) {
+                applyParts(current.day, padded, current.year);
+              }
               onBlur?.();
             }}
             className="w-8 bg-transparent text-center font-medium outline-none placeholder:font-normal placeholder:text-muted-foreground/55 disabled:cursor-not-allowed"
@@ -254,7 +280,11 @@ export function FormDatePicker({
             aria-label="Jaar"
             value={year}
             onChange={(event) => {
-              applyParts(day, month, digitsOnly(event.target.value, 4));
+              applyParts(
+                partsRef.current.day,
+                partsRef.current.month,
+                digitsOnly(event.target.value, 4),
+              );
             }}
             onBlur={onBlur}
             className="w-12 bg-transparent text-center font-medium outline-none placeholder:font-normal placeholder:text-muted-foreground/55 disabled:cursor-not-allowed"

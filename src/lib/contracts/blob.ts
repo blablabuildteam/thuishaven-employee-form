@@ -10,6 +10,7 @@ export async function uploadPrivatePdf(opts: {
   const blob = await put(opts.pathname, opts.buffer, {
     access: "private",
     contentType: "application/pdf",
+    allowOverwrite: true,
   });
   return { url: blob.url, pathname: blob.pathname };
 }

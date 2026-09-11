@@ -14,6 +14,7 @@ import {
   type ContractDocumentData,
   fullName,
 } from "@/lib/contracts/pdf-data";
+import { isValidSignatureDataUrl } from "@/lib/signatures/validate";
 
 const styles = StyleSheet.create({
   page: {
@@ -71,23 +72,22 @@ function ReglementDocument({ data }: { data: ContractDocumentData }) {
                 {paragraph}
               </Text>
             ))}
-            {"bullets" in section && section.bullets
-              ? section.bullets.map((bullet) => (
-                  <Text key={bullet} style={styles.bullet}>
-                    • {bullet}
-                  </Text>
-                ))
-              : null}
+            {"bullets" in section &&
+              section.bullets?.map((bullet) => (
+                <Text key={bullet} style={styles.bullet}>
+                  • {bullet}
+                </Text>
+              ))}
           </View>
         ))}
         <View style={{ marginTop: 14 }}>
           <Text>Ondertekend door {fullName(data.employee)}</Text>
-          {data.employeeSignatureData ? (
+          {isValidSignatureDataUrl(data.employeeSignatureData) && (
             <Image
-              src={data.employeeSignatureData}
+              src={data.employeeSignatureData!}
               style={styles.signatureImage}
             />
-          ) : null}
+          )}
         </View>
         </View>
       </Page>

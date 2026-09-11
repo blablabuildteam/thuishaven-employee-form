@@ -1,10 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { SignaturePad } from "@/components/form/signature-pad";
+import {
+  SignaturePad,
+  type SignaturePadHandle,
+} from "@/components/form/signature-pad";
+import { isValidSignatureDataUrl } from "@/lib/signatures/export";
 import {
   ContractDocumentPreview,
   ReglementPreview,
@@ -63,6 +66,8 @@ export function ContractSigningFlow({ token }: { token: string }) {
   });
   const [contractSignature, setContractSignature] = useState("");
   const [reglementSignature, setReglementSignature] = useState("");
+  const contractPadRef = useRef<SignaturePadHandle>(null);
+  const reglementPadRef = useRef<SignaturePadHandle>(null);
 
   const populate = useCallback(
     (data: { employee: EmployeePayload; contract: ContractPayload }) => {
@@ -177,11 +182,16 @@ export function ContractSigningFlow({ token }: { token: string }) {
 
   async function handleSign(event: React.FormEvent) {
     event.preventDefault();
-    if (!contractSignature) {
+    const finalContractSignature =
+      contractPadRef.current?.exportSignature() || contractSignature;
+    const finalReglementSignature =
+      reglementPadRef.current?.exportSignature() || reglementSignature;
+
+    if (!isValidSignatureDataUrl(finalContractSignature)) {
       setError("Onderteken het contract om verder te gaan.");
       return;
     }
-    if (!reglementSignature) {
+    if (!isValidSignatureDataUrl(finalReglementSignature)) {
       setError("Onderteken het huishoudelijk reglement.");
       return;
     }
@@ -200,11 +210,25 @@ export function ContractSigningFlow({ token }: { token: string }) {
           maritalStatus: details.maritalStatus,
           applyPayrollTaxCredit: details.applyPayrollTaxCredit === "yes",
           receivesBenefits: details.receivesBenefits === "yes",
-          contractSignatureData: contractSignature,
-          reglementSignatureData: reglementSignature,
+          contractSignatureData: finalContractSignature,
+          reglementSignatureData: finalReglementSignature,
         }),
       });
-      const data = await res.json();
+      const raw = await res.text();
+      let data: { error?: string } = {};
+      if (raw) {
+        try {
+          data = JSON.parse(raw) as { error?: string };
+        } catch {
+          throw new Error(
+            `Versturen mislukt (${res.status}). Probeer het opnieuw.`,
+          );
+        }
+      } else if (!res.ok) {
+        throw new Error(
+          `Versturen mislukt (${res.status}). Probeer het opnieuw.`,
+        );
+      }
       if (!res.ok) throw new Error(data.error || "Opslaan mislukt");
       setStep("done");
     } catch (err) {
@@ -236,26 +260,28 @@ export function ContractSigningFlow({ token }: { token: string }) {
         <p className="text-sm text-muted-foreground">
           Bevestig je identiteit met je BSN en geboortedatum.
         </p>
-        <div className="space-y-1.5">
-          <Label htmlFor="bsn">BSN</Label>
-          <Input
-            id="bsn"
-            value={bsn}
-            onChange={(e) => setBsn(e.target.value.replace(/\D/g, "").slice(0, 9))}
-            inputMode="numeric"
-            maxLength={9}
-            required
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="dob">Geboortedatum</Label>
-          <Input
-            id="dob"
-            type="date"
-            value={dateOfBirth}
-            onChange={(e) => setDateOfBirth(e.target.value)}
-            required
-          />
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="bsn">BSN</Label>
+            <Input
+              id="bsn"
+              value={bsn}
+              onChange={(e) => setBsn(e.target.value.replace(/\D/g, "").slice(0, 9))}
+              inputMode="numeric"
+              maxLength={9}
+              required
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="dob">Geboortedatum</Label>
+            <Input
+              id="dob"
+              type="date"
+              value={dateOfBirth}
+              onChange={(e) => setDateOfBirth(e.target.value)}
+              required
+            />
+          </div>
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}
         <button type="submit" className="th-chevron-btn" disabled={pending}>
@@ -412,23 +438,24 @@ export function ContractSigningFlow({ token }: { token: string }) {
         <div className="space-y-2">
           <Label>Handtekening oproepovereenkomst</Label>
           <SignaturePad
+            ref={contractPadRef}
             value={contractSignature}
             onChange={setContractSignature}
             complete={Boolean(contractSignature)}
           />
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <Button
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
+          <button
             type="button"
-            variant="outline"
+            className="th-chevron-btn th-chevron-btn-back sm:flex-1"
             onClick={() => {
               setError(null);
               setStep("details");
             }}
           >
             Terug
-          </Button>
+          </button>
           <button
             type="button"
             className="th-chevron-btn sm:flex-1"
@@ -457,16 +484,17 @@ export function ContractSigningFlow({ token }: { token: string }) {
         <div className="space-y-2">
           <Label>Handtekening huishoudelijk reglement</Label>
           <SignaturePad
+            ref={reglementPadRef}
             value={reglementSignature}
             onChange={setReglementSignature}
             complete={Boolean(reglementSignature)}
           />
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <Button
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
+          <button
             type="button"
-            variant="outline"
+            className="th-chevron-btn th-chevron-btn-back sm:flex-1"
             onClick={() => {
               setError(null);
               setStep("sign-contract");
@@ -474,7 +502,7 @@ export function ContractSigningFlow({ token }: { token: string }) {
             disabled={pending}
           >
             Terug
-          </Button>
+          </button>
           <button type="submit" className="th-chevron-btn sm:flex-1" disabled={pending}>
             {pending ? "Versturen…" : "Verstuur"}
           </button>

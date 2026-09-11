@@ -1,8 +1,19 @@
+import fs from "node:fs";
 import path from "node:path";
 import React from "react";
 import { Image, Text, View, StyleSheet } from "@react-pdf/renderer";
 
-const totemPath = path.join(process.cwd(), "public/brand/totem.png");
+let totemSrc: string | null = null;
+
+function getTotemSrc(): string {
+  if (!totemSrc) {
+    const file = fs.readFileSync(
+      path.join(process.cwd(), "public/brand/totem.png"),
+    );
+    totemSrc = `data:image/png;base64,${file.toString("base64")}`;
+  }
+  return totemSrc;
+}
 
 const styles = StyleSheet.create({
   header: {
@@ -46,8 +57,8 @@ const styles = StyleSheet.create({
 
 export function PdfBrandHeader({ subtitle }: { subtitle: string }) {
   return (
-    <View style={styles.header} fixed>
-      <Image src={totemPath} style={styles.totem} />
+    <View style={styles.header}>
+      <Image src={getTotemSrc()} style={styles.totem} />
       <Text style={styles.wordmark}>THUISHAVEN</Text>
       <Text style={styles.subtitle}>{subtitle}</Text>
       <View style={styles.rule} />

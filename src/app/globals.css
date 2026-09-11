@@ -188,6 +188,17 @@
     background-color: #000;
   }
 
+  .th-chevron-btn-back {
+    clip-path: polygon(14px 0, 100% 0, 100% 100%, 14px 100%, 0 50%);
+    @apply pl-8 pr-6 text-th-ink;
+    background-color: #D5D2C6;
+  }
+
+  .th-chevron-btn-back:hover:not(:disabled) {
+    transform: translateX(-3px);
+    background-color: #C9C6BA;
+  }
+
   .th-chevron-btn:disabled {
     @apply opacity-50;
   }
@@ -243,7 +254,8 @@
     animation: none;
   }
 
-  .th-chevron-btn:hover:not(:disabled) {
+  .th-chevron-btn:hover:not(:disabled),
+  .th-chevron-btn-back:hover:not(:disabled) {
     transform: none;
   }
 }
