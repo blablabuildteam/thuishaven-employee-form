@@ -25,6 +25,8 @@ import {
   calculateHourlyRate,
   calculateTotalHours,
   calculateTotalPay,
+  DEFAULT_PAY_RATES,
+  type PayRates,
 } from "@/lib/pay-calculation";
 import { submissionEditSchema } from "@/lib/validations";
 import type {
@@ -122,6 +124,7 @@ export function SubmissionDetailDialog({
   const [formError, setFormError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [values, setValues] = useState<EditValues | null>(null);
+  const [payRates, setPayRates] = useState<PayRates>(DEFAULT_PAY_RATES);
 
   useEffect(() => {
     if (!open) {
@@ -137,12 +140,30 @@ export function SubmissionDetailDialog({
     }
   }, [open, employee, submission]);
 
+  const eventDateForRates = values?.eventDate;
+  useEffect(() => {
+    if (!eventDateForRates) return;
+    let cancelled = false;
+    fetch(`/api/pay-rates?date=${encodeURIComponent(eventDateForRates)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: PayRates | null) => {
+        if (!cancelled && data?.under20Rate && data?.over20Rate) {
+          setPayRates(data);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [eventDateForRates]);
+
   const payPreview = useMemo(() => {
     if (!values) return null;
     try {
       const hourlyRate = calculateHourlyRate(
         new Date(values.dateOfBirth),
         new Date(values.eventDate),
+        payRates,
       );
       const totalHours = calculateTotalHours(
         values.startTime,
@@ -163,7 +184,7 @@ export function SubmissionDetailDialog({
         error: (error as Error).message,
       };
     }
-  }, [values]);
+  }, [values, payRates]);
 
   if (!loading && !submission) return null;
 

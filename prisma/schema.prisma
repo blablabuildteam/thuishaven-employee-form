@@ -24,12 +24,22 @@ model Employee {
 
   iban String
 
+  initials     String?
+  namePrefix   String?
+  placeOfBirth String?
+  gender       Gender?
+  nationality  String?
+  maritalStatus MaritalStatus?
+  applyPayrollTaxCredit Boolean?
+  receivesBenefits      Boolean?
+
   isBlocked Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   submissions      Submission[]
   alerts           Alert[]
+  contracts        Contract[]
   identityDocument IdentityDocument?
 
   @@index([lastName, dateOfBirth])
@@ -95,6 +105,9 @@ model Alert {
   type       AlertType
   message    String
 
+  contractId String?
+  contract   Contract? @relation(fields: [contractId], references: [id], onDelete: SetNull)
+
   acknowledged   Boolean   @default(false)
   acknowledgedAt DateTime?
   acknowledgedBy String?
@@ -103,6 +116,62 @@ model Alert {
 
   @@index([employeeId])
   @@index([acknowledged, createdAt])
+  @@index([contractId, type])
+}
+
+model PayRate {
+  id           String   @id @default(cuid())
+  effectiveFrom DateTime @unique
+  under20Rate  Decimal  @db.Decimal(10, 2)
+  over20Rate   Decimal  @db.Decimal(10, 2)
+  updatedBy    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Contract {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  version        Int
+  status         ContractStatus @default(INVITED)
+  templateVersion String        @default("oproep-2026-09")
+
+  startDate  DateTime
+  endDate    DateTime
+  hourlyRate Decimal  @db.Decimal(10, 2)
+
+  inviteTokenHash String    @unique
+  invitedAt       DateTime  @default(now())
+  invitedBy       String?
+  verifiedAt      DateTime?
+
+  employeeSignatureData    String?   @db.Text
+  reglementSignatureData   String?   @db.Text
+  employeeSignedAt         DateTime?
+
+  employerSignatureData String?   @db.Text
+  employerSignedAt      DateTime?
+  employerSignedBy      String?
+
+  contractPdfPathname    String?
+  contractPdfUrl         String?
+  reglementPdfPathname   String?
+  reglementPdfUrl        String?
+  fullySignedPdfPathname String?
+  fullySignedPdfUrl      String?
+
+  signedCopyEmailedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  alerts Alert[]
+
+  @@unique([employeeId, version])
+  @@index([employeeId, status])
+  @@index([endDate, status])
 }
 
 enum SubmissionStatus {
@@ -115,4 +184,23 @@ enum AlertType {
   THREE_SHIFTS
   FOUR_SHIFTS
   CONTRACT_NEEDED
+  CONTRACT_SIGNED
+  CONTRACT_EXPIRING
+}
+
+enum ContractStatus {
+  INVITED
+  EMPLOYEE_SIGNED
+  COUNTERSIGNED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum MaritalStatus {
+  MARRIED
+  UNMARRIED
 }

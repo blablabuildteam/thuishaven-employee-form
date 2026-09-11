@@ -15,6 +15,10 @@ function getAlertTypeLabel(type: string): string {
       return "4-shift contractactie";
     case "CONTRACT_NEEDED":
       return "Contract vereist";
+    case "CONTRACT_SIGNED":
+      return "Contract getekend";
+    case "CONTRACT_EXPIRING":
+      return "Contract verloopt";
     default:
       return type;
   }
@@ -48,7 +52,8 @@ export default async function AlertsPage() {
       {unacknowledged.length > 0 ? (
         <div className="space-y-3">
           {unacknowledged.map((alert) => {
-            const isSevere = alert.type === "FOUR_SHIFTS";
+            const isSevere =
+              alert.type === "FOUR_SHIFTS" || alert.type === "CONTRACT_EXPIRING";
             const Icon = isSevere ? ShieldAlert : AlertTriangle;
             return (
               <Card

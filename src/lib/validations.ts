@@ -16,7 +16,7 @@ export function isDienstDateValid(value?: string): boolean {
   );
 }
 
-function validateBSN(bsn: string): boolean {
+export function validateBSN(bsn: string): boolean {
   if (!/^\d{9}$/.test(bsn)) return false;
   const digits = bsn.split("").map(Number);
   const sum =

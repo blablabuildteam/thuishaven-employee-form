@@ -25,6 +25,15 @@ import {
 } from "lucide-react";
 import { DeleteEmployeeButton } from "@/components/dashboard/delete-employee-button";
 import { EmployeeSubmissionsTable } from "@/components/dashboard/employee-submissions-table";
+import { EmployeeContractsPanel } from "@/components/dashboard/employee-contracts-panel";
+import {
+  defaultContractEndDate,
+  defaultContractStartDate,
+  formatIsoDate,
+} from "@/lib/contracts/dates";
+import { calculateHourlyRate } from "@/lib/pay-calculation";
+import { getPayRatesForDate } from "@/lib/pay-rates";
+import { isContractExpiringSoon } from "@/lib/contracts/expiry-window";
 
 export default async function EmployeeDetailPage({
   params,
@@ -55,11 +64,31 @@ export default async function EmployeeDetailPage({
         },
       },
       identityDocument: true,
+      contracts: { orderBy: { version: "desc" } },
       _count: { select: { submissions: true } },
     },
   });
 
   if (!employee) notFound();
+
+  const defaultStart = defaultContractStartDate();
+  const defaultEnd = defaultContractEndDate(defaultStart);
+  const rates = await getPayRatesForDate(defaultStart);
+  let defaultRate = 0;
+  try {
+    defaultRate = calculateHourlyRate(
+      employee.dateOfBirth,
+      defaultStart,
+      rates,
+    );
+  } catch {
+    defaultRate = rates.over20Rate;
+  }
+
+  const latestContract = employee.contracts[0];
+  const expirySoon =
+    latestContract?.status === "COUNTERSIGNED" &&
+    isContractExpiringSoon(latestContract.endDate);
 
   return (
     <div className="space-y-6">
@@ -89,6 +118,11 @@ export default async function EmployeeDetailPage({
           ) : (
             <Badge className="border-emerald-200 bg-emerald-500/15 text-emerald-700">
               Actief
+            </Badge>
+          )}
+          {expirySoon && (
+            <Badge className="border-amber-200 bg-amber-500/15 text-amber-800">
+              Contract verloopt
             </Badge>
           )}
         </div>
@@ -228,6 +262,31 @@ export default async function EmployeeDetailPage({
           </CardContent>
         </Card>
       </div>
+
+      <EmployeeContractsPanel
+        employeeId={employee.id}
+        employeeName={`${employee.firstName} ${employee.lastName}`}
+        canSend={employee._count.submissions >= 1}
+        defaultStart={formatIsoDate(defaultStart)}
+        defaultEnd={formatIsoDate(defaultEnd)}
+        defaultRate={defaultRate}
+        contracts={employee.contracts.map((contract) => ({
+          id: contract.id,
+          version: contract.version,
+          status: contract.status,
+          startDate: contract.startDate.toISOString(),
+          endDate: contract.endDate.toISOString(),
+          hourlyRate: Number(contract.hourlyRate),
+          invitedAt: contract.invitedAt.toISOString(),
+          employeeSignedAt: contract.employeeSignedAt?.toISOString() ?? null,
+          employerSignedAt: contract.employerSignedAt?.toISOString() ?? null,
+          signedCopyEmailedAt:
+            contract.signedCopyEmailedAt?.toISOString() ?? null,
+          hasContractPdf: Boolean(contract.contractPdfPathname),
+          hasReglementPdf: Boolean(contract.reglementPdfPathname),
+          hasFullySignedPdf: Boolean(contract.fullySignedPdfPathname),
+        }))}
+      />
     </div>
   );
 }

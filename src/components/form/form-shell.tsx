@@ -6,15 +6,22 @@ export function FormShell({
   className,
   subtitle = "Medewerker Dienst Registratie",
   showFooter = true,
+  wide = false,
 }: {
   children: React.ReactNode;
   className?: string;
   subtitle?: string;
   showFooter?: boolean;
+  wide?: boolean;
 }) {
   return (
     <main className={cn("th-sunburst relative min-h-screen overflow-x-hidden", className)}>
-      <div className="mx-auto flex w-full max-w-2xl flex-col px-4 pb-10 pt-8 sm:px-6 sm:pt-12">
+      <div
+        className={cn(
+          "mx-auto flex w-full flex-col px-4 pb-10 pt-8 sm:px-6 sm:pt-12",
+          wide ? "max-w-5xl" : "max-w-2xl",
+        )}
+      >
         <header className="th-brand-mark mb-8 flex flex-col items-center text-center">
           <Image
             src="/brand/totem.png"
@@ -48,7 +55,7 @@ export function FormShell({
             alt=""
             width={2362}
             height={794}
-            className="mx-auto h-auto w-full max-w-3xl object-contain object-bottom opacity-90"
+            className="mx-auto h-auto w-full max-w-5xl object-contain object-bottom opacity-90"
             aria-hidden
           />
         </footer>

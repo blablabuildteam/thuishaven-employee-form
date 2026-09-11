@@ -11,6 +11,7 @@ import {
   calculateTotalHours,
   calculateTotalPay,
 } from "@/lib/pay-calculation";
+import { getPayRatesForDate } from "@/lib/pay-rates";
 import { submissionEditSchema } from "@/lib/validations";
 
 export async function GET(
@@ -96,7 +97,8 @@ export async function PATCH(
 
   let hourlyRate: number;
   try {
-    hourlyRate = calculateHourlyRate(dateOfBirth, eventDate);
+    const rates = await getPayRatesForDate(eventDate);
+    hourlyRate = calculateHourlyRate(dateOfBirth, eventDate, rates);
   } catch (error) {
     return NextResponse.json(
       { error: (error as Error).message },

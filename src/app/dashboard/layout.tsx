@@ -13,6 +13,15 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
+  try {
+    const { refreshContractExpiryAlerts } = await import(
+      "@/lib/contracts/expiry"
+    );
+    await refreshContractExpiryAlerts();
+  } catch {
+    // Expiry refresh should not block the dashboard.
+  }
+
   let alertCount = 0;
   try {
     alertCount = await prisma.alert.count({

@@ -17,9 +17,9 @@ import {
   calculateHourlyRate,
   calculateTotalHours,
   calculateTotalPay,
+  DEFAULT_PAY_RATES,
   getAgeCategory,
-  RATE_18_19,
-  RATE_20_PLUS,
+  type PayRates,
 } from "@/lib/pay-calculation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -65,9 +65,6 @@ const KNOWN_EMPLOYEE_FIELDS = [
   "iban",
 ] as const;
 
-const RATE_18_19_LABEL = RATE_18_19.toFixed(2).replace(".", ",");
-const RATE_20_PLUS_LABEL = RATE_20_PLUS.toFixed(2).replace(".", ",");
-
 export function EmployeeForm() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -80,6 +77,7 @@ export function EmployeeForm() {
   const [idDocumentFile, setIdDocumentFile] = useState<File | null>(null);
   const [idDocumentError, setIdDocumentError] = useState<string | undefined>();
   const [signaturePadKey, setSignaturePadKey] = useState(0);
+  const [payRates, setPayRates] = useState<PayRates>(DEFAULT_PAY_RATES);
   const [payInfo, setPayInfo] = useState<PayInfo>({
     category: null,
     hourlyRate: 0,
@@ -179,6 +177,24 @@ export function EmployeeForm() {
   const needsIdDocument = !hasIdentityDocument;
 
   useEffect(() => {
+    if (!eventDate) return;
+    let cancelled = false;
+    fetch(`/api/pay-rates?date=${encodeURIComponent(eventDate)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: PayRates | null) => {
+        if (!cancelled && data?.under20Rate && data?.over20Rate) {
+          setPayRates(data);
+        }
+      })
+      .catch(() => {
+        // Keep fallback rates.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [eventDate]);
+
+  useEffect(() => {
     if (!dateOfBirth || !eventDate) {
       setPayInfo({ category: null, hourlyRate: 0, totalHours: 0, totalPay: 0 });
       return;
@@ -188,7 +204,7 @@ export function EmployeeForm() {
       const dob = new Date(dateOfBirth);
       const event = new Date(eventDate);
       const category = getAgeCategory(dob, event);
-      const hourlyRate = calculateHourlyRate(dob, event);
+      const hourlyRate = calculateHourlyRate(dob, event, payRates);
 
       let totalHours = 0;
       if (startTime && endTime && /^\d{2}:\d{2}$/.test(startTime) && /^\d{2}:\d{2}$/.test(endTime)) {
@@ -200,7 +216,7 @@ export function EmployeeForm() {
     } catch {
       setPayInfo({ category: null, hourlyRate: 0, totalHours: 0, totalPay: 0 });
     }
-  }, [dateOfBirth, eventDate, startTime, endTime, breakMinutes]);
+  }, [dateOfBirth, eventDate, startTime, endTime, breakMinutes, payRates]);
 
   const clearKnownEmployeeFields = useCallback(() => {
     for (const field of KNOWN_EMPLOYEE_FIELDS) {
@@ -803,9 +819,12 @@ export function EmployeeForm() {
               onChange={() => {}}
               disabled
               className="size-4 accent-th-ink disabled:opacity-100"
-              aria-label={`18/19 jaar = €${RATE_18_19_LABEL} per uur`}
+              aria-label={`18/19 jaar = €${payRates.under20Rate.toFixed(2).replace(".", ",")} per uur`}
             />
-            <span>18/19 jaar = €{RATE_18_19_LABEL} per uur</span>
+            <span>
+              18/19 jaar = €{payRates.under20Rate.toFixed(2).replace(".", ",")}{" "}
+              per uur
+            </span>
           </label>
           <label className="flex cursor-default items-center gap-3 text-sm opacity-90">
             <input
@@ -815,9 +834,12 @@ export function EmployeeForm() {
               onChange={() => {}}
               disabled
               className="size-4 accent-th-ink disabled:opacity-100"
-              aria-label={`20 jaar of ouder = €${RATE_20_PLUS_LABEL} per uur`}
+              aria-label={`20 jaar of ouder = €${payRates.over20Rate.toFixed(2).replace(".", ",")} per uur`}
             />
-            <span>≥ 20 jaar = €{RATE_20_PLUS_LABEL} per uur</span>
+            <span>
+              ≥ 20 jaar = €{payRates.over20Rate.toFixed(2).replace(".", ",")} per
+              uur
+            </span>
           </label>
         </fieldset>
 

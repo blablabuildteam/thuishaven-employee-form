@@ -6,6 +6,7 @@ import {
   calculateTotalHours,
   calculateTotalPay,
 } from "@/lib/pay-calculation";
+import { getPayRatesForDate } from "@/lib/pay-rates";
 import { generateIB47PDF } from "@/lib/pdf/generate-ib47";
 import { createSubmissionDownloadToken } from "@/lib/pdf/download-token";
 import {
@@ -96,7 +97,8 @@ export async function POST(request: Request) {
 
     let hourlyRate: number;
     try {
-      hourlyRate = calculateHourlyRate(dateOfBirth, eventDate);
+      const rates = await getPayRatesForDate(eventDate);
+      hourlyRate = calculateHourlyRate(dateOfBirth, eventDate, rates);
     } catch (e) {
       return NextResponse.json(
         { error: (e as Error).message },

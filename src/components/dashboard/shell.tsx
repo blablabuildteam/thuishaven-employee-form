@@ -20,6 +20,7 @@ import {
   Bell,
   LogOut,
   Menu,
+  Settings,
 } from "lucide-react";
 
 const navItems = [
@@ -27,6 +28,7 @@ const navItems = [
   { label: "Dagelijks", href: "/dashboard/daily", icon: CalendarDays },
   { label: "Medewerkers", href: "/dashboard/employees", icon: Users },
   { label: "Meldingen", href: "/dashboard/alerts", icon: Bell },
+  { label: "Instellingen", href: "/dashboard/settings", icon: Settings },
 ];
 
 function isActive(href: string, pathname: string) {

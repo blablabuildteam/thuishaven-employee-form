@@ -11,7 +11,8 @@ import {
 import { format } from "date-fns";
 import { DISCLAIMER } from "@/lib/disclaimer";
 import { formatCurrency } from "@/lib/format";
-import { getAgeCategory, RATE_18_19, RATE_20_PLUS } from "@/lib/pay-calculation";
+import { getAgeCategory, DEFAULT_PAY_RATES, type PayRates } from "@/lib/pay-calculation";
+import { getPayRatesForDate } from "@/lib/pay-rates";
 
 const styles = StyleSheet.create({
   page: {
@@ -114,6 +115,7 @@ const styles = StyleSheet.create({
 });
 
 interface IB47Data {
+  rates?: PayRates;
   employee: {
     firstName: string;
     lastName: string;
@@ -162,7 +164,11 @@ function formatHours(hours: number): string {
   return hours.toFixed(2).replace(".", ",");
 }
 
-function IB47Document({ employee, submission }: IB47Data) {
+function IB47Document({
+  employee,
+  submission,
+  rates = DEFAULT_PAY_RATES,
+}: IB47Data) {
   const eventDate =
     submission.eventDate instanceof Date
       ? submission.eventDate
@@ -218,13 +224,13 @@ function IB47Document({ employee, submission }: IB47Data) {
               <View style={styles.checkRow}>
                 <PdfCheckbox checked={is18_19} />
                 <Text>
-                  18/19 jaar = {formatCurrency(RATE_18_19)} per uur
+                  18/19 jaar = {formatCurrency(rates.under20Rate)} per uur
                 </Text>
               </View>
               <View style={styles.checkRow}>
                 <PdfCheckbox checked={!is18_19} />
                 <Text>
-                  20 jaar of ouder = {formatCurrency(RATE_20_PLUS)} per uur
+                  20 jaar of ouder = {formatCurrency(rates.over20Rate)} per uur
                 </Text>
               </View>
             </View>
@@ -270,8 +276,17 @@ function IB47Document({ employee, submission }: IB47Data) {
 }
 
 export async function generateIB47PDF(data: IB47Data): Promise<Buffer> {
+  const eventDate =
+    data.submission.eventDate instanceof Date
+      ? data.submission.eventDate
+      : new Date(data.submission.eventDate);
+  const rates = data.rates ?? (await getPayRatesForDate(eventDate));
   const buffer = await renderToBuffer(
-    <IB47Document employee={data.employee} submission={data.submission} />,
+    <IB47Document
+      employee={data.employee}
+      submission={data.submission}
+      rates={rates}
+    />,
   );
   return Buffer.from(buffer);
 }

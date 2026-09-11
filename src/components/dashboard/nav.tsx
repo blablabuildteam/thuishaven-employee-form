@@ -12,6 +12,7 @@ import {
   LogOut,
   Menu,
   X,
+  Settings,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,7 @@ const navItems = [
   { href: "/dashboard/daily", label: "Dagelijks", icon: CalendarDays },
   { href: "/dashboard/employees", label: "Medewerkers", icon: Users },
   { href: "/dashboard/alerts", label: "Meldingen", icon: AlertTriangle },
+  { href: "/dashboard/settings", label: "Instellingen", icon: Settings },
 ];
 
 function NavLinks({
