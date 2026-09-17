@@ -11,6 +11,7 @@ import {
   parseIsoDate,
 } from "@/lib/contracts/dates";
 import { CONTRACT_TEMPLATE_VERSION } from "@/lib/contracts/copy";
+import { DEFAULT_JOB_TITLE } from "@/lib/contracts/defaults";
 import { generateInviteToken } from "@/lib/contracts/token";
 import { storeFullySignedPdf } from "@/lib/contracts/render";
 import { readPrivateBlobBuffer } from "@/lib/contracts/blob";
@@ -52,6 +53,7 @@ export async function previewContractInvite(employeeId: string) {
     startDate: startDate.toISOString(),
     endDate: endDate.toISOString(),
     hourlyRate,
+    jobTitle: DEFAULT_JOB_TITLE,
     email: employee.email,
   };
 }
@@ -60,6 +62,8 @@ export async function sendContractInvite(opts: {
   employeeId: string;
   startDate?: string;
   endDate?: string;
+  hourlyRate?: number;
+  jobTitle?: string;
 }) {
   const session = await requireSession();
   const employee = await prisma.employee.findUnique({
@@ -89,12 +93,17 @@ export async function sendContractInvite(opts: {
   const endDate = opts.endDate
     ? parseIsoDate(opts.endDate)
     : defaultContractEndDate(startDate);
-  const rates = await getPayRatesForDate(startDate);
-  const hourlyRate = calculateHourlyRate(
-    employee.dateOfBirth,
-    startDate,
-    rates,
-  );
+
+  // Use provided hourlyRate or calculate based on DOB
+  let hourlyRate: number;
+  if (opts.hourlyRate != null && opts.hourlyRate > 0) {
+    hourlyRate = opts.hourlyRate;
+  } else {
+    const rates = await getPayRatesForDate(startDate);
+    hourlyRate = calculateHourlyRate(employee.dateOfBirth, startDate, rates);
+  }
+
+  const jobTitle = opts.jobTitle?.trim() || DEFAULT_JOB_TITLE;
 
   const { raw, hash } = generateInviteToken();
   const invitedBy = session.user.email ?? "HR";
@@ -106,6 +115,7 @@ export async function sendContractInvite(opts: {
         startDate,
         endDate,
         hourlyRate,
+        jobTitle,
         inviteTokenHash: hash,
         invitedAt: new Date(),
         invitedBy,
@@ -122,6 +132,7 @@ export async function sendContractInvite(opts: {
         startDate,
         endDate,
         hourlyRate,
+        jobTitle,
         inviteTokenHash: hash,
         invitedBy,
       },
@@ -167,6 +178,7 @@ export async function countersignContract(opts: {
     startDate: contract.startDate,
     endDate: contract.endDate,
     hourlyRate: Number(contract.hourlyRate),
+    jobTitle: contract.jobTitle,
     employeeSignatureData: contract.employeeSignatureData,
     employerSignatureData: opts.signatureData,
     signedOn,

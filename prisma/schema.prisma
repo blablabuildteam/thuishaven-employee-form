@@ -141,6 +141,7 @@ model Contract {
   startDate  DateTime
   endDate    DateTime
   hourlyRate Decimal  @db.Decimal(10, 2)
+  jobTitle   String   @default("Algemeen medewerker")
 
   inviteTokenHash String    @unique
   invitedAt       DateTime  @default(now())

@@ -105,6 +105,9 @@ function OproepDocument({ data }: { data: ContractDocumentData }) {
   const start = formatContractDate(data.startDate);
   const end = formatContractDate(data.endDate);
   const wage = formatCurrency(data.hourlyRate);
+  const jobTitle = data.jobTitle;
+  // Job title with lowercase first letter for use in sentences
+  const jobTitleLower = jobTitle.charAt(0).toLowerCase() + jobTitle.slice(1);
   const name = fullName(data.employee);
   const address = fullAddress(data.employee);
   const dob = formatContractDate(data.employee.dateOfBirth);
@@ -137,7 +140,7 @@ function OproepDocument({ data }: { data: ContractDocumentData }) {
         <P>
           De werknemer treedt met ingang van {start} voor twaalf maanden in
           dienst van de werkgever als oproepkracht voor het verrichten van
-          werkzaamheden als algemeen medewerker. Er is geen vast aantal uren
+          werkzaamheden als {jobTitleLower}. Er is geen vast aantal uren
           overeengekomen. De arbeidsovereenkomst eindigt van rechtswege op {end}.
           Op de arbeidsovereenkomst is geen collectieve arbeidsovereenkomst van
           toepassing.
@@ -154,7 +157,7 @@ function OproepDocument({ data }: { data: ContractDocumentData }) {
           werkzaamheden worden verricht kunnen variëren en worden overlegd met
           de oproepkracht. De oproepkracht zal, indien opgeroepen en
           beschikbaar, bij de werkgever werkzaamheden verrichten in de functie
-          van Algemeen medewerker. De werkzaamheden vinden plaats te Amsterdam.
+          van {jobTitle}. De werkzaamheden vinden plaats te Amsterdam.
           De oproepkracht dient tenminste 15 minuten voor aanvang dienst
           aanwezig te zijn. De oproepkracht heeft alleen recht op loon indien
           hij daadwerkelijk als oproepkracht door de werkgever is opgeroepen en
@@ -273,7 +276,7 @@ function OproepDocument({ data }: { data: ContractDocumentData }) {
         <Row label="Brutosalaris" value={`${wage} per uur`} />
         <Row label="Vergoedingen" value="Nee" />
         <Row label="Contracturen" value="Nee" />
-        <Row label="Functie" value="Algemeen medewerker" />
+        <Row label="Functie" value={jobTitle} />
         <Row label="Vestiging" value="Amsterdam" />
 
         <Text style={styles.heading}>Arbeidsvoorwaarden</Text>

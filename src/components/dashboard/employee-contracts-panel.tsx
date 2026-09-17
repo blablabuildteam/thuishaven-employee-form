@@ -32,6 +32,7 @@ type ContractRow = {
   startDate: string;
   endDate: string;
   hourlyRate: number;
+  jobTitle: string;
   invitedAt: string;
   employeeSignedAt: string | null;
   employerSignedAt: string | null;
@@ -54,6 +55,7 @@ export function EmployeeContractsPanel({
   defaultStart,
   defaultEnd,
   defaultRate,
+  defaultJobTitle,
   contracts,
 }: {
   employeeId: string;
@@ -62,10 +64,13 @@ export function EmployeeContractsPanel({
   defaultStart: string;
   defaultEnd: string;
   defaultRate: number;
+  defaultJobTitle: string;
   contracts: ContractRow[];
 }) {
   const [startDate, setStartDate] = useState(defaultStart);
   const [endDate, setEndDate] = useState(defaultEnd);
+  const [hourlyRate, setHourlyRate] = useState(defaultRate.toString());
+  const [jobTitle, setJobTitle] = useState(defaultJobTitle);
   const [pending, setPending] = useState(false);
   const [signature, setSignature] = useState("");
 
@@ -81,12 +86,23 @@ export function EmployeeContractsPanel({
   }, [latest]);
 
   async function handleSend() {
+    const rate = parseFloat(hourlyRate.replace(",", "."));
+    if (isNaN(rate) || rate <= 0) {
+      toast.error("Voer een geldig uurloon in.");
+      return;
+    }
+    if (!jobTitle.trim()) {
+      toast.error("Voer een functietitel in.");
+      return;
+    }
     setPending(true);
     try {
       const result = await sendContractInvite({
         employeeId,
         startDate,
         endDate,
+        hourlyRate: rate,
+        jobTitle: jobTitle.trim(),
       });
       toast.success(
         result.skippedEmail
@@ -154,7 +170,7 @@ export function EmployeeContractsPanel({
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-1.5">
             <Label htmlFor="contract-start">Ingangsdatum</Label>
             <Input
@@ -174,14 +190,32 @@ export function EmployeeContractsPanel({
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Uurloon</Label>
-            <p className="flex h-8 items-center text-sm">
-              {formatCurrency(defaultRate)}
-            </p>
+            <Label htmlFor="contract-rate">Uurloon</Label>
+            <div className="relative">
+              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                €
+              </span>
+              <Input
+                id="contract-rate"
+                type="text"
+                inputMode="decimal"
+                value={hourlyRate}
+                onChange={(e) => setHourlyRate(e.target.value)}
+                className="pl-6"
+              />
+            </div>
             <p className="text-xs text-muted-foreground">
-              Wordt herberekend bij verzenden op basis van leeftijd op de
-              ingangsdatum.
+              Vooraf ingevuld op basis van leeftijd.
             </p>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="contract-job-title">Functietitel</Label>
+            <Input
+              id="contract-job-title"
+              type="text"
+              value={jobTitle}
+              onChange={(e) => setJobTitle(e.target.value)}
+            />
           </div>
         </div>
         <Button onClick={handleSend} disabled={!canSend || pending}>
@@ -214,7 +248,7 @@ export function EmployeeContractsPanel({
                 </div>
                 <p className="text-muted-foreground">
                   {formatDate(contract.startDate)} – {formatDate(contract.endDate)}{" "}
-                  · {formatCurrency(contract.hourlyRate)}
+                  · {formatCurrency(contract.hourlyRate)} · {contract.jobTitle}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Verstuurd{" "}

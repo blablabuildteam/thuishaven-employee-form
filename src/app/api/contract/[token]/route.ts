@@ -26,6 +26,7 @@ export async function GET(
       startDate: formatIsoDate(contract.startDate),
       endDate: formatIsoDate(contract.endDate),
       hourlyRate: Number(contract.hourlyRate),
+      jobTitle: contract.jobTitle,
     },
     employee: {
       firstName: employee.firstName,

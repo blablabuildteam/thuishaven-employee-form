@@ -62,6 +62,7 @@ export async function POST(
       startDate: contract.startDate,
       endDate: contract.endDate,
       hourlyRate: Number(contract.hourlyRate),
+      jobTitle: contract.jobTitle,
       employeeSignatureData: data.contractSignatureData,
       reglementSignatureData: data.reglementSignatureData,
       signedOn,

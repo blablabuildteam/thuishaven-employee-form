@@ -1,8 +1,8 @@
 import { differenceInYears } from "date-fns";
 
 /** Fallback DAGCONTRACT rates when no PayRate row applies. */
-export const RATE_18_19 = 13.5;
-export const RATE_20_PLUS = 15;
+export const RATE_18_19 = 13.49;
+export const RATE_20_PLUS = 14.99;
 
 export type PayRates = {
   under20Rate: number;

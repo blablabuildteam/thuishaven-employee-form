@@ -42,6 +42,7 @@ type ContractPayload = {
   startDate: string;
   endDate: string;
   hourlyRate: number;
+  jobTitle: string;
 };
 
 export function ContractSigningFlow({ token }: { token: string }) {
@@ -177,6 +178,7 @@ export function ContractSigningFlow({ token }: { token: string }) {
       startDate: parseIsoDate(contract.startDate),
       endDate: parseIsoDate(contract.endDate),
       hourlyRate: contract.hourlyRate,
+      jobTitle: contract.jobTitle,
     };
   }, [employee, contract, details]);
 

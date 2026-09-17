@@ -43,6 +43,9 @@ export function ContractDocumentPreview({ data }: { data: ContractDocumentData }
   const start = formatContractDate(data.startDate);
   const end = formatContractDate(data.endDate);
   const wage = formatCurrency(data.hourlyRate);
+  const jobTitle = data.jobTitle;
+  // Job title with lowercase first letter for use in sentences
+  const jobTitleLower = jobTitle.charAt(0).toLowerCase() + jobTitle.slice(1);
   const name = fullName(data.employee);
   const address = fullAddress(data.employee);
   const dob = formatContractDate(data.employee.dateOfBirth);
@@ -77,7 +80,7 @@ export function ContractDocumentPreview({ data }: { data: ContractDocumentData }
         <p>
           De werknemer treedt met ingang van {start} voor twaalf maanden in
           dienst van de werkgever als oproepkracht voor het verrichten van
-          werkzaamheden als algemeen medewerker. Er is geen vast aantal uren
+          werkzaamheden als {jobTitleLower}. Er is geen vast aantal uren
           overeengekomen. De arbeidsovereenkomst eindigt van rechtswege op {end}.
         </p>
         <p>
@@ -102,8 +105,7 @@ export function ContractDocumentPreview({ data }: { data: ContractDocumentData }
         </p>
         <p>
           De oproepkracht zal, indien opgeroepen en beschikbaar, bij de
-          werkgever werkzaamheden verrichten in de functie van Algemeen
-          medewerker. De werkzaamheden vinden plaats te Amsterdam.
+          werkgever werkzaamheden verrichten in de functie van {jobTitle}. De werkzaamheden vinden plaats te Amsterdam.
         </p>
         <p>
           De oproepkracht dient tenminste 15 minuten voor aanvang dienst
@@ -243,7 +245,7 @@ export function ContractDocumentPreview({ data }: { data: ContractDocumentData }
           <Row label="Brutosalaris" value={`${wage} per uur`} />
           <Row label="Vergoedingen" value="Nee" />
           <Row label="Contracturen" value="Nee" />
-          <Row label="Functie" value="Algemeen medewerker" />
+          <Row label="Functie" value={jobTitle} />
           <Row label="Vestiging" value="Amsterdam" />
         </dl>
       </section>

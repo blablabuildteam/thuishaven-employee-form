@@ -59,6 +59,7 @@ export type ContractDocumentData = {
   startDate: Date | string;
   endDate: Date | string;
   hourlyRate: number;
+  jobTitle: string;
   employeeSignatureData?: string | null;
   employerSignatureData?: string | null;
   signedOn?: Date | string | null;

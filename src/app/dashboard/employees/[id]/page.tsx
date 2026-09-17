@@ -34,6 +34,7 @@ import {
 import { calculateHourlyRate } from "@/lib/pay-calculation";
 import { getPayRatesForDate } from "@/lib/pay-rates";
 import { isContractExpiringSoon } from "@/lib/contracts/expiry-window";
+import { DEFAULT_JOB_TITLE } from "@/lib/contracts/defaults";
 
 export default async function EmployeeDetailPage({
   params,
@@ -270,6 +271,7 @@ export default async function EmployeeDetailPage({
         defaultStart={formatIsoDate(defaultStart)}
         defaultEnd={formatIsoDate(defaultEnd)}
         defaultRate={defaultRate}
+        defaultJobTitle={DEFAULT_JOB_TITLE}
         contracts={employee.contracts.map((contract) => ({
           id: contract.id,
           version: contract.version,
@@ -277,6 +279,7 @@ export default async function EmployeeDetailPage({
           startDate: contract.startDate.toISOString(),
           endDate: contract.endDate.toISOString(),
           hourlyRate: Number(contract.hourlyRate),
+          jobTitle: contract.jobTitle,
           invitedAt: contract.invitedAt.toISOString(),
           employeeSignedAt: contract.employeeSignedAt?.toISOString() ?? null,
           employerSignedAt: contract.employerSignedAt?.toISOString() ?? null,

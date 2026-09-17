@@ -37,6 +37,7 @@ export function toContractDocumentData(opts: {
   startDate: Date;
   endDate: Date;
   hourlyRate: number;
+  jobTitle: string;
   employeeSignatureData?: string | null;
   employerSignatureData?: string | null;
   signedOn?: Date | null;
@@ -46,6 +47,7 @@ export function toContractDocumentData(opts: {
     startDate: opts.startDate,
     endDate: opts.endDate,
     hourlyRate: opts.hourlyRate,
+    jobTitle: opts.jobTitle,
     employeeSignatureData: opts.employeeSignatureData,
     employerSignatureData: opts.employerSignatureData,
     signedOn: opts.signedOn,
@@ -58,6 +60,7 @@ export async function storeEmployeeSignedPdfs(opts: {
   startDate: Date;
   endDate: Date;
   hourlyRate: number;
+  jobTitle: string;
   employeeSignatureData: string;
   reglementSignatureData: string;
   signedOn: Date;
@@ -96,6 +99,7 @@ export async function storeFullySignedPdf(opts: {
   startDate: Date;
   endDate: Date;
   hourlyRate: number;
+  jobTitle: string;
   employeeSignatureData: string;
   employerSignatureData: string;
   signedOn: Date;
