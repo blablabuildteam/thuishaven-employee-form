@@ -4,8 +4,6 @@ export const EMPLOYER = {
   company: "Thuishaven Events B.V.",
   address: "Contactweg 68, 1014 BW AMSTERDAM",
   kvk: "59708085",
-  representative: "I. Klinkhamer",
-  representativeRole: "directeur",
   city: "Amsterdam",
 };
 

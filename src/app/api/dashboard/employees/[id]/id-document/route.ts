@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await auth();
@@ -34,6 +34,7 @@ export async function GET(
       );
     }
 
+    const download = new URL(request.url).searchParams.get("download") === "1";
     const headers = new Headers();
     headers.set(
       "Content-Type",
@@ -41,7 +42,7 @@ export async function GET(
     );
     headers.set(
       "Content-Disposition",
-      `inline; filename="${document.originalName.replace(/"/g, "")}"`,
+      `${download ? "attachment" : "inline"}; filename="${document.originalName.replace(/"/g, "")}"`,
     );
     headers.set("Cache-Control", "private, no-store");
 

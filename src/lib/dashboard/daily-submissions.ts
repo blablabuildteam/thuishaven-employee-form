@@ -22,6 +22,7 @@ export type DailySubmissionRow = {
     id: string;
     firstName: string;
     lastName: string;
+    hasIdentityDocument: boolean;
   };
 };
 
@@ -55,6 +56,7 @@ export async function getDailyDayGroups(options: {
             id: true,
             firstName: true,
             lastName: true,
+            identityDocument: { select: { id: true } },
           },
         },
       },
@@ -79,7 +81,12 @@ export async function getDailyDayGroups(options: {
       hourlyRate: Number(sub.hourlyRate),
       totalHours: Number(sub.totalHours),
       totalPay: Number(sub.totalPay),
-      employee: sub.employee,
+      employee: {
+        id: sub.employee.id,
+        firstName: sub.employee.firstName,
+        lastName: sub.employee.lastName,
+        hasIdentityDocument: Boolean(sub.employee.identityDocument),
+      },
     });
     byDate.set(key, list);
   }

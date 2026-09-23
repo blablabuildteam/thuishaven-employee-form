@@ -63,9 +63,7 @@ export function ContractDocumentPreview({ data }: { data: ContractDocumentData }
       <p>De ondergetekenden</p>
       <p>
         {EMPLOYER.company} gevestigd te {EMPLOYER.address}, ingeschreven bij de
-        Kamer van Koophandel onder nummer {EMPLOYER.kvk} in deze rechtsgeldig
-        vertegenwoordigd door de heer {EMPLOYER.representative},{" "}
-        {EMPLOYER.representativeRole}.
+        Kamer van Koophandel onder nummer {EMPLOYER.kvk}.
       </p>
       <p>Hierna te noemen “werkgever”</p>
       <p>en</p>
@@ -260,6 +258,8 @@ export function ContractDocumentPreview({ data }: { data: ContractDocumentData }
           <span className="th-label">Handtekening werkgever</span>
           <br />
           {data.employerSignatureData ? "Ondertekend" : "Nog te ondertekenen"}
+          <br />
+          {EMPLOYER.company}
         </p>
         <p>
           <span className="th-label">Handtekening werknemer</span>

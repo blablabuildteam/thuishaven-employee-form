@@ -326,7 +326,7 @@ export function EmployeeContractsPanel({
                 {awaitingCountersign && contract.id === latest?.id && (
                   <div className="mt-4 space-y-3 border-t pt-4">
                     <p className="text-sm font-medium">
-                      Ondertekenen namens Thuishaven (I. Klinkhamer)
+                      Ondertekenen namens Thuishaven Events B.V.
                     </p>
                     <SignaturePad
                       value={signature}

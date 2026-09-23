@@ -17,6 +17,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   ArrowLeft,
   Download,
+  Eye,
   Calendar,
   Phone,
   Mail,
@@ -182,21 +183,35 @@ export default async function EmployeeDetailPage({
                       locale: nl,
                     })}
                   </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-2"
-                    render={
-                      <a
-                        href={`/api/dashboard/employees/${employee.id}/id-document`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      />
-                    }
-                  >
-                    <Download className="size-3.5" />
-                    Bekijken
-                  </Button>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      render={
+                        <a
+                          href={`/api/dashboard/employees/${employee.id}/id-document`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        />
+                      }
+                    >
+                      <Eye className="size-3.5" />
+                      Bekijken
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      render={
+                        <a
+                          href={`/api/dashboard/employees/${employee.id}/id-document?download=1`}
+                          download
+                        />
+                      }
+                    >
+                      <Download className="size-3.5" />
+                      Downloaden
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <p className="pl-7 text-xs text-muted-foreground">

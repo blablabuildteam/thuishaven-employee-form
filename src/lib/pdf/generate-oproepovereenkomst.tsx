@@ -124,9 +124,7 @@ function OproepDocument({ data }: { data: ContractDocumentData }) {
         <P>De ondergetekenden</P>
         <P>
           {EMPLOYER.company} gevestigd te {EMPLOYER.address}, ingeschreven bij
-          de Kamer van Koophandel onder nummer {EMPLOYER.kvk} in deze
-          rechtsgeldig vertegenwoordigd door de heer {EMPLOYER.representative},{" "}
-          {EMPLOYER.representativeRole}.
+          de Kamer van Koophandel onder nummer {EMPLOYER.kvk}.
         </P>
         <P>Hierna te noemen “werkgever”</P>
         <P>en</P>
@@ -292,9 +290,7 @@ function OproepDocument({ data }: { data: ContractDocumentData }) {
                 <Text style={styles.muted}>Nog te ondertekenen</Text>
               )}
             </View>
-            <Text style={styles.muted}>
-              {EMPLOYER.company} / {EMPLOYER.representative}
-            </Text>
+            <Text style={styles.muted}>{EMPLOYER.company}</Text>
           </View>
           <View style={styles.signatureCol}>
             <Text>Handtekening werknemer</Text>

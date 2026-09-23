@@ -61,6 +61,7 @@ function toDailyRow(
       id: employee.id,
       firstName: employee.firstName,
       lastName: employee.lastName,
+      hasIdentityDocument: false,
     },
   };
 }
@@ -70,7 +71,12 @@ function applySubmissionUpdate(
   data: SubmissionDetailResponse,
 ): DailyDayGroup[] {
   const dateKey = data.submission.eventDate.slice(0, 10);
+  const existing = days
+    .flatMap((day) => day.submissions)
+    .find((row) => row.id === data.submission.id);
   const nextRow = toDailyRow(data.employee, data.submission);
+  nextRow.employee.hasIdentityDocument =
+    existing?.employee.hasIdentityDocument ?? false;
 
   return days.map((day) => {
     const without = day.submissions
@@ -83,6 +89,7 @@ function applySubmissionUpdate(
                 id: data.employee.id,
                 firstName: data.employee.firstName,
                 lastName: data.employee.lastName,
+                hasIdentityDocument: row.employee.hasIdentityDocument,
               },
             }
           : row,
@@ -225,6 +232,7 @@ function DayTable({
             <TableHead className="text-right">Uurloon</TableHead>
             <TableHead className="text-right">Totaal</TableHead>
             <TableHead className="text-center">PDF</TableHead>
+            <TableHead className="text-center">ID</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -277,6 +285,29 @@ function DayTable({
                   <Download className="size-4" />
                 </Button>
               </TableCell>
+              <TableCell
+                className="text-center"
+                onClick={(event) => event.stopPropagation()}
+                onKeyDown={(event) => event.stopPropagation()}
+              >
+                {sub.employee.hasIdentityDocument ? (
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    render={
+                      <a
+                        href={`/api/dashboard/employees/${sub.employee.id}/id-document?download=1`}
+                        download
+                        aria-label="ID-document downloaden"
+                      />
+                    }
+                  >
+                    <Download className="size-4" />
+                  </Button>
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -292,6 +323,7 @@ function DayTable({
             <TableCell className="text-right font-medium">
               {formatCurrency(totalPay)}
             </TableCell>
+            <TableCell />
             <TableCell />
           </TableRow>
         </TableFooter>
