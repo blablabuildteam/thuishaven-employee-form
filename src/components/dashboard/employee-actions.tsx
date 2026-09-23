@@ -83,9 +83,10 @@ export function EmployeeActions({
           <AlertDialogHeader>
             <AlertDialogTitle>Medewerker verwijderen?</AlertDialogTitle>
             <AlertDialogDescription>
-              Weet je zeker dat je {employeeName} wilt verwijderen? Alle
-              inschrijvingen, meldingen en het ID-document worden permanent
-              verwijderd. Dit kan niet ongedaan worden gemaakt.
+              Weet je zeker dat je {employeeName} wilt verwijderen? Hiermee
+              worden ook alle records verwijderd die door deze persoon zijn
+              ingediend, inclusief inschrijvingen, meldingen en het
+              ID-document. Dit kan niet ongedaan worden gemaakt.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
