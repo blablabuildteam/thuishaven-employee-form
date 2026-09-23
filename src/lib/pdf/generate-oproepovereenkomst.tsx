@@ -235,26 +235,18 @@ function OproepDocument({ data }: { data: ContractDocumentData }) {
         <View style={styles.body}>
         <Text style={styles.heading}>Werkgever {EMPLOYER.company}</Text>
         <Text style={styles.heading}>Persoonlijke gegevens</Text>
+        <Row label="Voornaam + achternaam" value={name} />
+        <Row label="Mobiele nummer" value={data.employee.phone} />
+        <Row label="E-mail" value={data.employee.email} />
+        <Row label="Geslacht" value={genderLabel(data.employee.gender)} />
+        <Row label="Geboortedatum" value={dob} />
+        <Row label="BSN-nummer" value={data.employee.bsn} />
+        <Row label="Adres" value={address} />
+        <Row label="IBAN" value={data.employee.iban} />
         <Row label="Voorletter" value={data.employee.initials ?? ""} />
         <Row label="Tussenvoegsel" value={data.employee.namePrefix ?? ""} />
-        <Row label="Naam" value={data.employee.lastName} />
-        <Row label="Voornaam" value={data.employee.firstName} />
-        <Row
-          label="Adres"
-          value={`${data.employee.street} ${data.employee.houseNumber}`}
-        />
-        <Row
-          label="Postcode + plaats"
-          value={`${data.employee.postalCode} ${data.employee.city}`}
-        />
-        <Row label="Telefoonnummer" value={data.employee.phone} />
-        <Row label="Geboortedatum" value={dob} />
         <Row label="Geboorteplaats" value={data.employee.placeOfBirth ?? ""} />
-        <Row label="Geslacht" value={genderLabel(data.employee.gender)} />
         <Row label="Nationaliteit" value={data.employee.nationality ?? ""} />
-        <Row label="Bank/gironummer" value={data.employee.iban} />
-        <Row label="Burgerservicenummer" value={data.employee.bsn} />
-        <Row label="E-mail (i.v.m. loonstrook)" value={data.employee.email} />
         <Row
           label="Burgerlijke staat"
           value={maritalLabel(data.employee.maritalStatus)}

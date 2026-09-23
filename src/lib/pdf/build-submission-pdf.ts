@@ -13,6 +13,7 @@ export async function buildSubmissionPdf(submissionId: string) {
     employee: {
       firstName: submission.employee.firstName,
       lastName: submission.employee.lastName,
+      namePrefix: submission.employee.namePrefix,
       dateOfBirth: submission.employee.dateOfBirth.toISOString(),
       bsn: submission.employee.bsn,
       street: submission.employee.street,
@@ -21,6 +22,7 @@ export async function buildSubmissionPdf(submissionId: string) {
       city: submission.employee.city,
       phone: submission.employee.phone,
       email: submission.employee.email,
+      gender: submission.employee.gender,
       iban: submission.employee.iban,
     },
     submission: {

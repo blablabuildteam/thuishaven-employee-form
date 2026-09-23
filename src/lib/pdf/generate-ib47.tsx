@@ -11,8 +11,10 @@ import {
 import { format } from "date-fns";
 import { DISCLAIMER } from "@/lib/disclaimer";
 import { formatCurrency } from "@/lib/format";
+import { genderLabel } from "@/lib/contracts/pdf-data";
 import { getAgeCategory, DEFAULT_PAY_RATES, type PayRates } from "@/lib/pay-calculation";
 import { getPayRatesForDate } from "@/lib/pay-rates";
+import type { Gender } from "@/generated/prisma/client";
 
 const styles = StyleSheet.create({
   page: {
@@ -119,6 +121,7 @@ interface IB47Data {
   employee: {
     firstName: string;
     lastName: string;
+    namePrefix?: string | null;
     dateOfBirth: string | Date;
     bsn: string;
     street: string;
@@ -127,6 +130,7 @@ interface IB47Data {
     city: string;
     phone: string;
     email: string;
+    gender?: Gender | null;
     iban: string;
   };
   submission: {
@@ -191,24 +195,23 @@ function IB47Document({
           <FieldRow label="Afdeling:" value={submission.department || "-"} />
           <FieldRow
             label="Voornaam + achternaam:"
-            value={`${employee.firstName} ${employee.lastName}`}
+            value={[employee.firstName, employee.namePrefix?.trim(), employee.lastName]
+              .filter(Boolean)
+              .join(" ")}
           />
-        </View>
-
-        <View style={styles.section}>
+          <FieldRow label="Mobiele nummer:" value={employee.phone} />
+          <FieldRow label="E-mail:" value={employee.email} />
+          <FieldRow
+            label="Geslacht:"
+            value={genderLabel(employee.gender) || "-"}
+          />
           <FieldRow label="Geboortedatum:" value={format(dob, "dd-MM-yyyy")} />
-          <FieldRow label="BSN/Sofinummer:" value={employee.bsn} />
+          <FieldRow label="BSN-nummer:" value={employee.bsn} />
           <FieldRow
-            label="Straat + huisnummer:"
-            value={`${employee.street} ${employee.houseNumber}`}
+            label="Adres:"
+            value={`${employee.street} ${employee.houseNumber}, ${employee.postalCode} ${employee.city}`}
           />
-          <FieldRow
-            label="Postcode + woonplaats:"
-            value={`${employee.postalCode} ${employee.city}`}
-          />
-          <FieldRow label="Telefoonnummer:" value={employee.phone} />
-          <FieldRow label="Email:" value={employee.email} />
-          <FieldRow label="Bankrekeningnummer:" value={employee.iban} />
+          <FieldRow label="IBAN:" value={employee.iban} />
         </View>
 
         <View style={styles.section}>

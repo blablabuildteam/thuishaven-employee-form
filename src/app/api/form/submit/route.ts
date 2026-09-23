@@ -252,6 +252,7 @@ export async function POST(request: Request) {
         employee: {
           firstName: employee.firstName,
           lastName: employee.lastName,
+          namePrefix: employee.namePrefix,
           dateOfBirth: employee.dateOfBirth.toISOString(),
           bsn: data.bsn,
           street: employee.street,
@@ -260,6 +261,7 @@ export async function POST(request: Request) {
           city: employee.city,
           phone: employee.phone,
           email: employee.email,
+          gender: employee.gender,
           iban: data.iban,
         },
         submission: {
