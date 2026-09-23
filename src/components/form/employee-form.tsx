@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm, Controller, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -65,13 +65,36 @@ const KNOWN_EMPLOYEE_FIELDS = [
   "iban",
 ] as const;
 
+const identitySchema = formSchema.pick({
+  firstName: true,
+  lastName: true,
+  bsn: true,
+});
+
+const DETAIL_FIELDS = [
+  "dateOfBirth",
+  "street",
+  "houseNumber",
+  "postalCode",
+  "city",
+  "phone",
+  "email",
+  "iban",
+  "eventDate",
+  "department",
+  "startTime",
+  "endTime",
+  "signatureData",
+] as const satisfies readonly (keyof EmployeeFormValues)[];
+
 export function EmployeeForm() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [isReturningEmployee, setIsReturningEmployee] = useState(false);
   const [hasIdentityDocument, setHasIdentityDocument] = useState(false);
-  const [matchedBsn, setMatchedBsn] = useState<string | null>(null);
+  const [identityConfirmed, setIdentityConfirmed] = useState(false);
+  const [identityError, setIdentityError] = useState<string | undefined>();
   const [unlockedFields, setUnlockedFields] =
     useState<Record<UnlockableField, boolean>>(INITIAL_UNLOCKED);
   const [idDocumentFile, setIdDocumentFile] = useState<File | null>(null);
@@ -84,11 +107,6 @@ export function EmployeeForm() {
     totalHours: 0,
     totalPay: 0,
   });
-  const lookupInFlightRef = useRef<string | null>(null);
-  const currentLookupKeyRef = useRef<string | null>(null);
-  const currentBsnRef = useRef("");
-  const currentNameKeyRef = useRef("");
-
   const {
     register,
     control,
@@ -98,6 +116,7 @@ export function EmployeeForm() {
     reset,
     watch,
     setError,
+    clearErrors,
     formState: { errors, dirtyFields },
   } = useForm<EmployeeFormValues>({
     resolver: zodResolver(formSchema) as Resolver<EmployeeFormValues>,
@@ -218,18 +237,20 @@ export function EmployeeForm() {
     }
   }, [dateOfBirth, eventDate, startTime, endTime, breakMinutes, payRates]);
 
-  const clearKnownEmployeeFields = useCallback(() => {
-    for (const field of KNOWN_EMPLOYEE_FIELDS) {
+  const clearDetails = useCallback(() => {
+    for (const field of DETAIL_FIELDS) {
       setValue(field, "", { shouldValidate: false, shouldDirty: false });
     }
+    setValue("breakMinutes", 0, { shouldValidate: false, shouldDirty: false });
+    setIdDocumentFile(null);
+    setIdDocumentError(undefined);
+    setSignaturePadKey((key) => key + 1);
   }, [setValue]);
 
   const clearReturningState = useCallback(() => {
-    setMatchedBsn(null);
     setIsReturningEmployee(false);
     setHasIdentityDocument(false);
     setUnlockedFields(INITIAL_UNLOCKED);
-    currentNameKeyRef.current = "";
   }, []);
 
   // When an ID is already on file, clear any staged upload.
@@ -259,14 +280,6 @@ export function EmployeeForm() {
       }
       if (data.employee.bsn) {
         setValue("bsn", data.employee.bsn, { shouldValidate: true });
-        currentBsnRef.current = data.employee.bsn;
-        setMatchedBsn(data.employee.bsn);
-      }
-      if (data.employee.firstName && data.employee.lastName) {
-        currentNameKeyRef.current = nameLookupKey(
-          data.employee.firstName,
-          data.employee.lastName,
-        );
       }
       setIsReturningEmployee(true);
       setHasIdentityDocument(Boolean(data.hasIdentityDocument));
@@ -275,132 +288,79 @@ export function EmployeeForm() {
     [setValue],
   );
 
-  const lookupBsn = useCallback(
-    async (bsn: string) => {
-      if (!/^\d{9}$/.test(bsn)) return;
-      if (bsn === matchedBsn) return;
-      const lookupKey = `bsn:${bsn}`;
-      if (lookupInFlightRef.current === lookupKey) return;
+  const confirmIdentity = useCallback(async () => {
+    const firstName = getValues("firstName").trim();
+    const lastName = getValues("lastName").trim();
+    const bsn = getValues("bsn").trim();
+    setValue("firstName", firstName);
+    setValue("lastName", lastName);
+    setValue("bsn", bsn);
 
-      lookupInFlightRef.current = lookupKey;
-      currentLookupKeyRef.current = lookupKey;
-      setIsLookingUp(true);
-      try {
-        const [lookupRes] = await Promise.all([
-          fetch(`/api/form/lookup?bsn=${bsn}`),
-          fetch(`/api/form/check-status?bsn=${bsn}`),
-        ]);
-
-        // Ignore stale responses if the user kept typing
-        if (currentLookupKeyRef.current !== lookupKey) return;
-        if (currentBsnRef.current !== bsn) return;
-
-        if (lookupRes.ok) {
-          const data = await lookupRes.json();
-          if (data.employee) {
-            applyEmployee(data);
-          } else {
-            if (matchedBsn) {
-              clearKnownEmployeeFields();
-            }
-            clearReturningState();
-          }
-        }
-      } catch {
-        // Lookup failed silently — user can still fill in manually
-      } finally {
-        if (lookupInFlightRef.current === lookupKey) {
-          lookupInFlightRef.current = null;
-        }
-        if (currentLookupKeyRef.current === lookupKey) {
-          setIsLookingUp(false);
+    const parsed = identitySchema.safeParse({ firstName, lastName, bsn });
+    if (!parsed.success) {
+      clearErrors(["firstName", "lastName", "bsn"]);
+      for (const issue of parsed.error.issues) {
+        const field = issue.path[0];
+        if (field === "firstName" || field === "lastName" || field === "bsn") {
+          setError(field, { message: issue.message });
         }
       }
-    },
-    [applyEmployee, matchedBsn, clearKnownEmployeeFields, clearReturningState],
-  );
+      return;
+    }
 
-  const lookupByName = useCallback(
-    async (firstName: string, lastName: string) => {
-      const first = firstName.trim();
-      const last = lastName.trim();
-      if (!first || !last) return;
-
-      const nameKey = nameLookupKey(first, last);
-      if (matchedBsn && currentNameKeyRef.current === nameKey) return;
-
-      const lookupKey = `name:${nameKey}`;
-      if (lookupInFlightRef.current === lookupKey) return;
-
-      lookupInFlightRef.current = lookupKey;
-      currentLookupKeyRef.current = lookupKey;
-      currentNameKeyRef.current = nameKey;
-      setIsLookingUp(true);
-      try {
-        const params = new URLSearchParams({ firstName: first, lastName: last });
-        const lookupRes = await fetch(`/api/form/lookup?${params}`);
-
-        if (currentLookupKeyRef.current !== lookupKey) return;
-
-        if (lookupRes.ok) {
-          const data = await lookupRes.json();
-          if (data.employee) {
-            applyEmployee(data);
-          }
-        }
-      } catch {
-        // Lookup failed silently — user can still fill in manually
-      } finally {
-        if (lookupInFlightRef.current === lookupKey) {
-          lookupInFlightRef.current = null;
-        }
-        if (currentLookupKeyRef.current === lookupKey) {
-          setIsLookingUp(false);
-        }
-      }
-    },
-    [applyEmployee, matchedBsn],
-  );
-
-  const handleBsnChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const bsn = e.target.value;
-      currentBsnRef.current = bsn;
-      if (matchedBsn && bsn !== matchedBsn) {
-        clearReturningState();
-      }
-      if (/^\d{9}$/.test(bsn)) {
-        void lookupBsn(bsn);
-      } else {
-        lookupInFlightRef.current = null;
-        setIsLookingUp(false);
-      }
-    },
-    [matchedBsn, clearReturningState, lookupBsn],
-  );
-
-  const handleBsnBlur = useCallback(
-    (e: React.FocusEvent<HTMLInputElement>) => {
-      const bsn = e.target.value;
-      if (!/^\d{9}$/.test(bsn)) {
-        if (matchedBsn) {
-          clearKnownEmployeeFields();
-          clearReturningState();
-        }
+    clearErrors(["firstName", "lastName", "bsn"]);
+    setIdentityError(undefined);
+    setIsLookingUp(true);
+    try {
+      const lookupRes = await fetch(
+        `/api/form/lookup?bsn=${encodeURIComponent(bsn)}`,
+      );
+      if (!lookupRes.ok) {
+        setIdentityError(
+          "Gegevens konden niet worden gecontroleerd. Probeer het opnieuw.",
+        );
         return;
       }
-      void lookupBsn(bsn);
-    },
-    [matchedBsn, clearKnownEmployeeFields, clearReturningState, lookupBsn],
-  );
 
-  const handleNameBlur = useCallback(() => {
-    if (isReturningEmployee) return;
-    const firstName = getValues("firstName");
-    const lastName = getValues("lastName");
-    if (!firstName.trim() || !lastName.trim()) return;
-    void lookupByName(firstName, lastName);
-  }, [getValues, isReturningEmployee, lookupByName]);
+      const data = (await lookupRes.json()) as {
+        employee?: Record<string, string | undefined>;
+        hasIdentityDocument?: boolean;
+      };
+
+      clearDetails();
+      if (data.employee) {
+        applyEmployee({
+          employee: data.employee,
+          hasIdentityDocument: data.hasIdentityDocument,
+        });
+      } else {
+        clearReturningState();
+      }
+      setIdentityConfirmed(true);
+    } catch {
+      setIdentityError(
+        "Gegevens konden niet worden gecontroleerd. Probeer het opnieuw.",
+      );
+    } finally {
+      setIsLookingUp(false);
+    }
+  }, [
+    applyEmployee,
+    clearDetails,
+    clearErrors,
+    clearReturningState,
+    getValues,
+    setError,
+    setValue,
+  ]);
+
+  const editIdentity = useCallback(() => {
+    clearDetails();
+    clearReturningState();
+    clearErrors();
+    setIdentityError(undefined);
+    setIdentityConfirmed(false);
+  }, [clearDetails, clearErrors, clearReturningState]);
 
   const phoneLocked = isReturningEmployee && !unlockedFields.phone;
   const emailLocked = isReturningEmployee && !unlockedFields.email;
@@ -487,7 +447,18 @@ export function EmployeeForm() {
       : null;
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-5" noValidate>
+    <form
+      onSubmit={(event) => {
+        if (!identityConfirmed) {
+          event.preventDefault();
+          void confirmIdentity();
+          return;
+        }
+        void handleSubmit(onSubmit)(event);
+      }}
+      className="space-y-4 sm:space-y-5"
+      noValidate
+    >
       {/* Honeypot */}
       <div className="absolute -left-[9999px]" aria-hidden="true">
         <input type="text" tabIndex={-1} autoComplete="off" {...register("honeypot")} />
@@ -500,6 +471,7 @@ export function EmployeeForm() {
             onClick={() => {
               void prefillTestData();
               clearReturningState();
+              setIdentityConfirmed(true);
             }}
             className="th-label text-xs tracking-[0.14em] text-th-muted underline-offset-4 hover:underline"
           >
@@ -508,62 +480,74 @@ export function EmployeeForm() {
         </div>
       )}
 
-      {isReturningEmployee && (
+      {identityConfirmed && isReturningEmployee && (
         <div className="border border-th-green bg-th-green-light/50 px-4 py-3 text-sm text-foreground">
-          Gegevens gevonden. Persoonlijke gegevens zijn ingevuld en vastgezet — vul alleen de
-          dienstdetails en handtekening in.
+          Gegevens gevonden. Persoonlijke gegevens zijn ingevuld en vastgezet
+          {needsIdDocument
+            ? " — voeg een foto van je ID toe en vul de dienstdetails en handtekening in."
+            : " — vul de dienstdetails en handtekening in."}
         </div>
       )}
 
-      {/* Persoonlijke gegevens — full name or BSN for returning-employee lookup */}
-      <FormSection title="Persoonlijke gegevens" complete={sectionComplete.personal}>
+      {identityConfirmed && !isReturningEmployee && (
+        <div className="border border-th-ink bg-th-cream px-4 py-3 text-sm text-foreground">
+          Dit BSN nummer kennen wij nog niet. Vul de rest van het formulier in graag.
+        </div>
+      )}
+
+      <FormSection
+        title="Persoonlijke gegevens"
+        complete={identityConfirmed && sectionComplete.personal}
+      >
+        {!identityConfirmed && (
+          <p className="text-sm text-muted-foreground">
+            Vul eerst je naam en BSN in. We checken of je al eens eerder bij ons hebt gewerkt.
+          </p>
+        )}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FormField label="Voornaam" error={errors.firstName?.message} filled={filled.firstName}>
             <Input
               placeholder="Jan"
-              disabled={isReturningEmployee}
-              {...register("firstName", {
-                onBlur: handleNameBlur,
-              })}
+              disabled={identityConfirmed || isLookingUp}
+              {...register("firstName")}
             />
           </FormField>
           <FormField label="Achternaam" error={errors.lastName?.message} filled={filled.lastName}>
-            <div className="relative">
-              <Input
-                placeholder="De Vries"
-                disabled={isReturningEmployee}
-                {...register("lastName", {
-                  onBlur: handleNameBlur,
-                })}
-              />
-              {isLookingUp && !/^\d{9}$/.test(values.bsn ?? "") && (
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                  Zoeken…
-                </span>
-              )}
-            </div>
+            <Input
+              placeholder="De Vries"
+              disabled={identityConfirmed || isLookingUp}
+              {...register("lastName")}
+            />
           </FormField>
         </div>
         <FormField label="BSN / Sofinummer" error={errors.bsn?.message} filled={filled.bsn}>
-          <div className="relative">
-            <Input
-              placeholder="123456789"
-              maxLength={9}
-              inputMode="numeric"
-              {...register("bsn", {
-                onChange: handleBsnChange,
-                onBlur: (e) => {
-                  void handleBsnBlur(e);
-                },
-              })}
-            />
-            {isLookingUp && /^\d{9}$/.test(values.bsn ?? "") && (
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                Zoeken…
-              </span>
-            )}
-          </div>
+          <Input
+            placeholder="123456789"
+            maxLength={9}
+            inputMode="numeric"
+            disabled={identityConfirmed || isLookingUp}
+            {...register("bsn")}
+          />
         </FormField>
+        {identityConfirmed ? (
+          <button
+            type="button"
+            onClick={editIdentity}
+            className="th-label text-xs tracking-[0.12em] text-th-muted underline underline-offset-4"
+          >
+            Naam of BSN wijzigen
+          </button>
+        ) : (
+          <>
+            {identityError && (
+              <p className="text-sm text-destructive">{identityError}</p>
+            )}
+            <button type="submit" className="th-chevron-btn" disabled={isLookingUp}>
+              {isLookingUp ? "Zoeken…" : "Verder"}
+            </button>
+          </>
+        )}
+        {identityConfirmed && (
         <FormField
           label="Geboortedatum"
           error={errors.dateOfBirth?.message}
@@ -587,8 +571,11 @@ export function EmployeeForm() {
             )}
           />
         </FormField>
+        )}
       </FormSection>
 
+      {identityConfirmed && (
+      <>
       {/* Adres */}
       <FormSection title="Adres" complete={sectionComplete.address}>
         {!isReturningEmployee && (
@@ -773,14 +760,25 @@ export function EmployeeForm() {
             )}
           />
         </FormField>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <FormField label="Starttijd" error={errors.startTime?.message} filled={filled.startTime}>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <FormField
+            className="min-w-0"
+            label="Starttijd"
+            error={errors.startTime?.message}
+            filled={filled.startTime}
+          >
             <Input type="time" {...register("startTime")} />
           </FormField>
-          <FormField label="Eindtijd" error={errors.endTime?.message} filled={filled.endTime}>
+          <FormField
+            className="min-w-0"
+            label="Eindtijd"
+            error={errors.endTime?.message}
+            filled={filled.endTime}
+          >
             <Input type="time" {...register("endTime")} />
           </FormField>
           <FormField
+            className="col-span-2 min-w-0 sm:col-span-1"
             label="Pauze (minuten)"
             error={errors.breakMinutes?.message}
             filled={filled.breakMinutes}
@@ -945,16 +943,14 @@ export function EmployeeForm() {
       <button type="submit" className="th-chevron-btn" disabled={isSubmitting}>
         {isSubmitting ? "Verzenden…" : "Formulier verzenden"}
       </button>
+      </>
+      )}
     </form>
   );
 }
 
 function hasText(value?: string | null) {
   return Boolean(value?.trim());
-}
-
-function nameLookupKey(firstName: string, lastName: string) {
-  return `${firstName.trim().toLowerCase()}|${lastName.trim().toLowerCase()}`;
 }
 
 function FormSection({
@@ -1020,18 +1016,21 @@ function FormField({
   error,
   filled = false,
   action,
+  className,
   children,
 }: {
   label: string;
   error?: string;
   filled?: boolean;
   action?: React.ReactNode;
+  className?: string;
   children: React.ReactNode;
 }) {
   return (
     <div
       className={cn(
         "space-y-1.5",
+        className,
         filled &&
           !error &&
           "[&_[data-slot=input]]:border-th-green [&_[data-slot=input]]:focus-visible:ring-th-green/25 [&_[data-slot=select-trigger]]:border-th-green [&_[data-slot=select-trigger]]:focus-visible:ring-th-green/25",

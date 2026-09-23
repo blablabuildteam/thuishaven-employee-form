@@ -140,6 +140,18 @@
   html {
     @apply font-sans;
   }
+
+  /* Native time controls have a wide intrinsic size and spill out of narrow columns. */
+  input[type="time"] {
+    min-inline-size: 0;
+    max-inline-size: 100%;
+  }
+
+  input[type="time"]::-webkit-datetime-edit,
+  input[type="time"]::-webkit-date-and-time-value {
+    min-width: 0;
+    padding: 0;
+  }
 }
 
 @layer utilities {
