@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireVerifiedContract } from "@/lib/contracts/session";
 import { contractCompleteSchema } from "@/lib/contracts/schema";
+import { formatIban } from "@/lib/iban";
 import { storeEmployeeSignedPdfs } from "@/lib/contracts/render";
 import {
   employeeSignedNotifyEmail,
@@ -45,6 +46,13 @@ export async function POST(
     const employee = await prisma.employee.update({
       where: { id: contract.employeeId },
       data: {
+        street: data.street,
+        houseNumber: data.houseNumber,
+        postalCode: data.postalCode,
+        city: data.city,
+        phone: data.phone,
+        email: data.email,
+        iban: formatIban(data.iban),
         initials: data.initials.trim(),
         namePrefix: data.namePrefix.trim() || null,
         placeOfBirth: data.placeOfBirth.trim(),

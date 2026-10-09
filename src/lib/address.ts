@@ -11,7 +11,7 @@ type AddressComponentLike = {
   types?: string[];
 };
 
-function formatDutchPostalCode(raw: string): string {
+export function formatDutchPostalCode(raw: string): string {
   const cleaned = raw.replace(/\s+/g, "").toUpperCase();
   const match = cleaned.match(/^(\d{4})([A-Z]{2})$/);
   if (!match) return raw.trim();
