@@ -17,21 +17,23 @@ import { getAgeCategory } from "@/lib/pay-calculation";
 import type { Gender } from "@/generated/prisma/client";
 
 /**
- * Each value sits alone in a fixed-height box. Express (and similar zonal
- * scanners) copy whatever falls inside a rectangle trained on a sample page,
- * and those rectangles only survive if every PDF has the same boxes in the
- * same place. Labels stay outside the boxes. Combined lines (full name,
- * full address, a pay equation) are split so one box is one payroll field.
+ * Express reads a rectangle trained on a sample page. On the paper IB47 that
+ * rectangle sits on the handwriting to the right of one label. Side-by-side
+ * boxes put several values in that band, so a zone catches a border and a
+ * neighbour. Only a date pattern and the amount next to "Totaal" still
+ * survive that. Every payroll value is therefore its own row: a fixed label
+ * column, then one box of the same size, with the text inset from the border.
+ * Row height never depends on the value, so the boxes stay put.
  */
 
 const styles = StyleSheet.create({
   page: {
-    paddingTop: 28,
-    paddingBottom: 24,
+    paddingTop: 26,
+    paddingBottom: 22,
     paddingHorizontal: 32,
     fontSize: 10,
     fontFamily: "Helvetica",
-    lineHeight: 1.3,
+    lineHeight: 1.2,
   },
   header: {
     fontSize: 15,
@@ -40,88 +42,93 @@ const styles = StyleSheet.create({
   },
   subheader: {
     fontSize: 11,
-    marginBottom: 6,
+    marginBottom: 4,
   },
   anchor: {
     borderBottomWidth: 1.5,
     borderBottomColor: "#000",
     marginBottom: 8,
   },
-  section: {
-    marginBottom: 4,
-  },
-  sectionTitle: {
-    fontSize: 8,
-    fontFamily: "Helvetica-Bold",
-    marginBottom: 3,
-  },
   fieldRow: {
     flexDirection: "row",
-    alignItems: "stretch",
-    marginBottom: 5,
-    gap: 6,
+    alignItems: "center",
+    height: 18,
+    marginBottom: 3,
   },
   fieldLabel: {
-    fontSize: 7,
+    width: 108,
+    fontSize: 8,
     fontFamily: "Helvetica-Bold",
-    marginBottom: 1,
+    marginRight: 8,
   },
   valueBox: {
-    height: 18,
-    borderWidth: 1,
+    flex: 1,
+    height: 16,
+    borderWidth: 0.75,
     borderColor: "#000",
-    paddingHorizontal: 4,
-    paddingTop: 3,
+    paddingHorizontal: 6,
     justifyContent: "center",
     overflow: "hidden",
   },
   valueText: {
     fontSize: 10,
     fontFamily: "Helvetica",
+    lineHeight: 1,
+  },
+  groupGap: {
+    height: 5,
+  },
+  signatureRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    height: 48,
+    marginBottom: 4,
   },
   signatureBox: {
-    height: 52,
-    borderWidth: 1,
+    flex: 1,
+    height: 44,
+    borderWidth: 0.75,
     borderColor: "#000",
-    paddingHorizontal: 4,
+    paddingHorizontal: 6,
     paddingVertical: 2,
     justifyContent: "center",
+    overflow: "hidden",
   },
   signatureImage: {
-    width: 180,
-    height: 46,
+    width: 160,
+    height: 38,
     objectFit: "contain",
   },
   divider: {
     borderBottomWidth: 1,
     borderBottomColor: "#000",
-    marginTop: 4,
-    marginBottom: 8,
+    marginTop: 2,
+    marginBottom: 6,
   },
   disclaimer: {
-    fontSize: 8,
-    lineHeight: 1.35,
+    fontSize: 7.5,
+    lineHeight: 1.3,
   },
   disclaimerTitle: {
     fontFamily: "Helvetica-Bold",
-    fontSize: 8.5,
-    marginTop: 6,
+    fontSize: 8,
+    marginTop: 4,
     marginBottom: 1,
   },
   warning: {
-    marginTop: 6,
+    marginTop: 4,
     fontFamily: "Helvetica-Bold",
-    fontSize: 8.5,
-  },
-  note: {
     fontSize: 8,
-    fontFamily: "Helvetica-Bold",
-    color: "#8B0000",
   },
   taxFollowUp: {
-    marginTop: 3,
-    fontSize: 8,
-    lineHeight: 1.35,
+    marginTop: 2,
+    fontSize: 7.5,
+    lineHeight: 1.3,
+  },
+  note: {
+    fontSize: 7.5,
+    fontFamily: "Helvetica-Bold",
+    color: "#8B0000",
   },
 });
 
@@ -155,20 +162,16 @@ interface IB47Data {
   };
 }
 
-function Field({
-  label,
-  value,
-  flex = 1,
-}: {
-  label: string;
-  value: string;
-  flex?: number;
-}) {
+function Field({ label, value }: { label: string; value: string }) {
   return (
-    <View style={{ flex }}>
-      <Text style={styles.fieldLabel}>{label}</Text>
+    <View style={styles.fieldRow} wrap={false}>
+      <Text style={styles.fieldLabel} wrap={false}>
+        {label}
+      </Text>
       <View style={styles.valueBox}>
-        <Text style={styles.valueText}>{value || " "}</Text>
+        <Text style={styles.valueText} wrap={false}>
+          {value || " "}
+        </Text>
       </View>
     </View>
   );
@@ -192,69 +195,49 @@ function IB47Document({ employee, submission }: IB47Data) {
 
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      <Page size="A4" style={styles.page} wrap={false}>
         <Text style={styles.header}>THUISHAVEN</Text>
         <Text style={styles.subheader}>IB47-formulier</Text>
         <View style={styles.anchor} />
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Persoonsgegevens</Text>
-          <View style={styles.fieldRow}>
-            <Field label="Voornaam" value={employee.firstName.trim()} flex={2} />
-            <Field
-              label="Tussenvoegsel"
-              value={employee.namePrefix?.trim() ?? ""}
-              flex={1.4}
-            />
-            <Field label="Achternaam" value={employee.lastName.trim()} flex={2} />
-          </View>
-          <View style={styles.fieldRow}>
-            <Field label="Geboortedatum" value={format(dob, "dd-MM-yyyy")} />
-            <Field label="Geslacht" value={genderLabel(employee.gender)} />
-            <Field label="BSN" value={employee.bsn.trim()} />
-          </View>
-          <View style={styles.fieldRow}>
-            <Field label="Telefoon" value={employee.phone.trim()} />
-            <Field label="E-mail" value={employee.email.trim()} flex={2} />
-          </View>
-          <View style={styles.fieldRow}>
-            <Field label="Straat" value={employee.street.trim()} flex={3} />
-            <Field label="Huisnummer" value={employee.houseNumber.trim()} />
-          </View>
-          <View style={styles.fieldRow}>
-            <Field label="Postcode" value={employee.postalCode.trim()} />
-            <Field label="Woonplaats" value={employee.city.trim()} flex={2} />
-          </View>
-          <View style={styles.fieldRow}>
-            <Field label="IBAN" value={normalizeIban(employee.iban)} />
-          </View>
-        </View>
+        <Field label="Datum dienst" value={format(eventDate, "dd-MM-yyyy")} />
+        <Field label="Afdeling" value={submission.department?.trim() ?? ""} />
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Dienst</Text>
-          <View style={styles.fieldRow}>
-            <Field label="Datum dienst" value={format(eventDate, "dd-MM-yyyy")} />
-            <Field label="Afdeling" value={submission.department?.trim() ?? ""} flex={2} />
-          </View>
-          <View style={styles.fieldRow}>
-            <Field label="Starttijd" value={submission.startTime} />
-            <Field label="Eindtijd" value={submission.endTime} />
-            <Field label="Pauze (min)" value={String(submission.breakMinutes)} />
-          </View>
-        </View>
+        <View style={styles.groupGap} />
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Verloning</Text>
-          <View style={styles.fieldRow}>
-            <Field label="Leeftijd" value={ageCategory} />
-            <Field label="Uurloon" value={formatCurrency(submission.hourlyRate)} />
-            <Field label="Uren" value={formatHours(submission.totalHours)} />
-            <Field label="Totaal" value={formatCurrency(submission.totalPay)} />
-          </View>
-        </View>
+        <Field label="Voornaam" value={employee.firstName.trim()} />
+        <Field label="Tussenvoegsel" value={employee.namePrefix?.trim() ?? ""} />
+        <Field label="Achternaam" value={employee.lastName.trim()} />
+        <Field label="Mobiele nummer" value={employee.phone.trim()} />
+        <Field label="E-mail" value={employee.email.trim()} />
+        <Field label="Geslacht" value={genderLabel(employee.gender)} />
+        <Field label="Geboortedatum" value={format(dob, "dd-MM-yyyy")} />
+        <Field label="BSN-nummer" value={employee.bsn.trim()} />
+        <Field label="Straat" value={employee.street.trim()} />
+        <Field label="Huisnummer" value={employee.houseNumber.trim()} />
+        <Field label="Postcode" value={employee.postalCode.trim()} />
+        <Field label="Woonplaats" value={employee.city.trim()} />
+        <Field label="IBAN" value={normalizeIban(employee.iban)} />
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Handtekening</Text>
+        <View style={styles.groupGap} />
+
+        <Field label="Starttijd" value={submission.startTime} />
+        <Field label="Eindtijd" value={submission.endTime} />
+        <Field label="Pauze (min)" value={String(submission.breakMinutes)} />
+
+        <View style={styles.groupGap} />
+
+        <Field label="Leeftijd" value={ageCategory} />
+        <Field label="Uurloon" value={formatCurrency(submission.hourlyRate)} />
+        <Field label="Uren" value={formatHours(submission.totalHours)} />
+        <Field label="Totaal" value={formatCurrency(submission.totalPay)} />
+
+        <View style={styles.groupGap} />
+
+        <View style={styles.signatureRow} wrap={false}>
+          <Text style={styles.fieldLabel} wrap={false}>
+            Handtekening
+          </Text>
           <View style={styles.signatureBox}>
             {submission.signatureData ? (
               <Image src={submission.signatureData} style={styles.signatureImage} />
