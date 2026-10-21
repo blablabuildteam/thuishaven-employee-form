@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { findContractByInviteToken, sameBirthDate } from "@/lib/contracts/session";
+import { findContractByInviteToken } from "@/lib/contracts/session";
 import { contractVerifySchema } from "@/lib/contracts/schema";
 import {
   contractSessionCookie,
@@ -30,13 +30,9 @@ export async function POST(
     );
   }
 
-  const { bsn, dateOfBirth } = parsed.data;
-  if (
-    contract.employee.bsn !== bsn ||
-    !sameBirthDate(contract.employee.dateOfBirth, dateOfBirth)
-  ) {
+  if (contract.employee.bsn !== parsed.data.bsn) {
     return NextResponse.json(
-      { error: "BSN en geboortedatum komen niet overeen." },
+      { error: "BSN komt niet overeen." },
       { status: 401 },
     );
   }

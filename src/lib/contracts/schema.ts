@@ -1,14 +1,27 @@
 import { z } from "zod";
 import { formatDutchPostalCode } from "@/lib/address";
+import { parseBirthDate } from "@/lib/contracts/dates";
 import { formSchema } from "@/lib/validations";
+
+export const birthDateSchema = z.string().trim().superRefine((value, ctx) => {
+  try {
+    parseBirthDate(value);
+  } catch (error) {
+    ctx.addIssue({
+      code: "custom",
+      message:
+        error instanceof Error ? error.message : "Ongeldige geboortedatum",
+    });
+  }
+});
 
 export const contractVerifySchema = z.object({
   bsn: z.string().length(9, "BSN moet 9 cijfers zijn"),
-  dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Geboortedatum is verplicht"),
 });
 
 /** Address and contact details the employee may correct before signing. */
 export const contractContactSchema = z.object({
+  dateOfBirth: birthDateSchema,
   street: z.string().trim().min(1, "Straat is verplicht"),
   houseNumber: z.string().trim().min(1, "Huisnummer is verplicht"),
   postalCode: z

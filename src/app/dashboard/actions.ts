@@ -4,7 +4,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { deleteIdentityDocumentBlob } from "@/lib/id-document";
 import { deletePrivateBlob } from "@/lib/contracts/blob";
-import { parseIsoDate } from "@/lib/contracts/dates";
+import { parseBirthDate, parseIsoDate } from "@/lib/contracts/dates";
+import { birthDateSchema } from "@/lib/contracts/schema";
 import { payRateInputSchema } from "@/lib/contracts/pay-rate-schema";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -65,6 +66,33 @@ async function syncShiftThresholdState(
       },
     });
   }
+}
+
+export async function updateEmployeeDateOfBirth(
+  employeeId: string,
+  dateOfBirth: string,
+) {
+  await requireSession();
+  const parsed = birthDateSchema.safeParse(dateOfBirth);
+  if (!parsed.success) {
+    return {
+      error: parsed.error.issues[0]?.message ?? "Ongeldige geboortedatum",
+    };
+  }
+
+  const employee = await prisma.employee.findUnique({
+    where: { id: employeeId },
+    select: { id: true },
+  });
+  if (!employee) return { error: "Medewerker niet gevonden" };
+
+  await prisma.employee.update({
+    where: { id: employeeId },
+    data: { dateOfBirth: parseBirthDate(parsed.data) },
+  });
+
+  revalidateEmployeePaths(employeeId);
+  return { ok: true as const };
 }
 
 export async function unblockEmployee(employeeId: string) {

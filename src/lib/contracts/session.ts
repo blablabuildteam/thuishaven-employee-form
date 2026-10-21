@@ -1,7 +1,5 @@
-import { format } from "date-fns";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/db";
-import { formatIsoDate } from "@/lib/contracts/dates";
 import {
   contractSessionCookie,
   hashInviteToken,
@@ -40,8 +38,4 @@ export async function requireVerifiedContract(rawToken: string) {
   }
 
   return { ok: true as const, contract };
-}
-
-export function sameBirthDate(stored: Date, iso: string): boolean {
-  return formatIsoDate(stored) === iso || format(stored, "yyyy-MM-dd") === iso;
 }

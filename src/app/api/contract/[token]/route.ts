@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireVerifiedContract } from "@/lib/contracts/session";
-import { formatIsoDate } from "@/lib/contracts/dates";
+import { formatCalendarDate, formatIsoDate } from "@/lib/contracts/dates";
 
 export async function GET(
   _request: Request,
@@ -31,7 +31,7 @@ export async function GET(
     employee: {
       firstName: employee.firstName,
       lastName: employee.lastName,
-      dateOfBirth: formatIsoDate(employee.dateOfBirth),
+      dateOfBirth: formatCalendarDate(employee.dateOfBirth),
       street: employee.street,
       houseNumber: employee.houseNumber,
       postalCode: employee.postalCode,

@@ -27,9 +27,11 @@ import {
 import { DeleteEmployeeButton } from "@/components/dashboard/delete-employee-button";
 import { EmployeeSubmissionsTable } from "@/components/dashboard/employee-submissions-table";
 import { EmployeeContractsPanel } from "@/components/dashboard/employee-contracts-panel";
+import { EmployeeBirthDateForm } from "@/components/dashboard/employee-birth-date-form";
 import {
   defaultContractEndDate,
   defaultContractStartDate,
+  formatCalendarDate,
   formatIsoDate,
 } from "@/lib/contracts/dates";
 import { calculateHourlyRate } from "@/lib/pay-calculation";
@@ -136,11 +138,15 @@ export default async function EmployeeDetailPage({
             <CardTitle>Gegevens</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center gap-3 text-sm">
-              <Calendar className="size-4 shrink-0 text-muted-foreground" />
-              <span>
-                {format(employee.dateOfBirth, "d MMMM yyyy", { locale: nl })}
-              </span>
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center gap-3">
+                <Calendar className="size-4 shrink-0 text-muted-foreground" />
+                <span className="text-muted-foreground">Geboortedatum</span>
+              </div>
+              <EmployeeBirthDateForm
+                employeeId={employee.id}
+                dateOfBirth={formatCalendarDate(employee.dateOfBirth)}
+              />
             </div>
             <div className="flex items-center gap-3 text-sm">
               <Mail className="size-4 shrink-0 text-muted-foreground" />

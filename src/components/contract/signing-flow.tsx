@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AddressAutocomplete } from "@/components/form/address-autocomplete";
+import { FormDatePicker } from "@/components/form/form-date-picker";
 import { IbanField } from "@/components/form/iban-field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,6 +51,7 @@ type ContractPayload = {
 };
 
 type ContactField =
+  | "dateOfBirth"
   | "street"
   | "houseNumber"
   | "postalCode"
@@ -59,6 +61,7 @@ type ContactField =
   | "iban";
 
 type ContractDetails = {
+  dateOfBirth: string;
   street: string;
   houseNumber: string;
   postalCode: string;
@@ -77,6 +80,7 @@ type ContractDetails = {
 };
 
 const EMPTY_DETAILS: ContractDetails = {
+  dateOfBirth: "",
   street: "",
   houseNumber: "",
   postalCode: "",
@@ -94,10 +98,15 @@ const EMPTY_DETAILS: ContractDetails = {
   receivesBenefits: "",
 };
 
-function displayIsoDate(iso: string): string {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
-  if (!match) return iso;
-  return `${match[3]}-${match[2]}-${match[1]}`;
+function birthDateOrFallback(value: string, fallback: string): Date {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    try {
+      return parseIsoDate(value);
+    } catch {
+      // Keep the stored date until the field is a complete calendar day.
+    }
+  }
+  return parseIsoDate(fallback);
 }
 
 export function ContractSigningFlow({ token }: { token: string }) {
@@ -107,7 +116,6 @@ export function ContractSigningFlow({ token }: { token: string }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [bsn, setBsn] = useState("");
-  const [dateOfBirth, setDateOfBirth] = useState("");
   const [employee, setEmployee] = useState<EmployeePayload | null>(null);
   const [contract, setContract] = useState<ContractPayload | null>(null);
   const [details, setDetails] = useState<ContractDetails>(EMPTY_DETAILS);
@@ -124,6 +132,7 @@ export function ContractSigningFlow({ token }: { token: string }) {
       setEmployee(data.employee);
       setContract(data.contract);
       setDetails({
+        dateOfBirth: data.employee.dateOfBirth || "",
         street: data.employee.street || "",
         houseNumber: data.employee.houseNumber || "",
         postalCode: data.employee.postalCode || "",
@@ -177,7 +186,7 @@ export function ContractSigningFlow({ token }: { token: string }) {
       const res = await fetch(`/api/contract/${token}/verify`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bsn, dateOfBirth }),
+        body: JSON.stringify({ bsn }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Verificatie mislukt");
@@ -266,7 +275,10 @@ export function ContractSigningFlow({ token }: { token: string }) {
       lastName: employee.lastName,
       initials: details.initials,
       namePrefix: details.namePrefix || null,
-      dateOfBirth: parseIsoDate(employee.dateOfBirth),
+      dateOfBirth: birthDateOrFallback(
+        details.dateOfBirth,
+        employee.dateOfBirth,
+      ),
       street: details.street,
       houseNumber: details.houseNumber,
       postalCode: details.postalCode,
@@ -313,6 +325,7 @@ export function ContractSigningFlow({ token }: { token: string }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          dateOfBirth: details.dateOfBirth,
           street: details.street,
           houseNumber: details.houseNumber,
           postalCode: details.postalCode,
@@ -376,30 +389,19 @@ export function ContractSigningFlow({ token }: { token: string }) {
     return (
       <form onSubmit={handleVerify} className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          Bevestig je identiteit met je BSN en geboortedatum.
+          Bevestig je identiteit met je BSN.
         </p>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <Label htmlFor="bsn">BSN</Label>
-            <Input
-              id="bsn"
-              value={bsn}
-              onChange={(e) => setBsn(e.target.value.replace(/\D/g, "").slice(0, 9))}
-              inputMode="numeric"
-              maxLength={9}
-              required
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="dob">Geboortedatum</Label>
-            <Input
-              id="dob"
-              type="date"
-              value={dateOfBirth}
-              onChange={(e) => setDateOfBirth(e.target.value)}
-              required
-            />
-          </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="bsn">BSN</Label>
+          <Input
+            id="bsn"
+            value={bsn}
+            onChange={(e) => setBsn(e.target.value.replace(/\D/g, "").slice(0, 9))}
+            inputMode="numeric"
+            maxLength={9}
+            autoComplete="off"
+            required
+          />
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}
         <button type="submit" className="th-chevron-btn" disabled={pending}>
@@ -413,8 +415,8 @@ export function ContractSigningFlow({ token }: { token: string }) {
     return (
       <form onSubmit={handleDetailsSubmit} className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          Controleer je gegevens. Adres, telefoon, e-mail en IBAN kun je hier
-          aanpassen. Naam en geboortedatum blijven zoals we ze hebben.
+          Controleer je gegevens. Geboortedatum, adres, telefoon, e-mail en
+          IBAN kun je hier aanpassen. Je naam blijft zoals we die hebben.
         </p>
         <div className="grid gap-3 rounded-md border bg-white p-4 text-sm sm:grid-cols-2">
           <p>
@@ -422,11 +424,19 @@ export function ContractSigningFlow({ token }: { token: string }) {
             <br />
             {employee.firstName} {employee.lastName}
           </p>
-          <p>
-            <span className="text-muted-foreground">Geboortedatum</span>
-            <br />
-            {displayIsoDate(employee.dateOfBirth)}
-          </p>
+          <Field
+            label="Geboortedatum"
+            htmlFor="dateOfBirth"
+            error={fieldErrors.dateOfBirth}
+          >
+            <FormDatePicker
+              id="dateOfBirth"
+              variant="birth"
+              value={details.dateOfBirth}
+              onChange={(value) => updateDetail("dateOfBirth", value)}
+              aria-invalid={!!fieldErrors.dateOfBirth}
+            />
+          </Field>
         </div>
         <div className="space-y-3">
           <p className="text-sm font-medium">Adres</p>
